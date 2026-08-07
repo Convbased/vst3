@@ -43,7 +43,7 @@ smtg_add_vst3plugin(ConvbasedVST3
 
 target_compile_features(ConvbasedVST3 PRIVATE cxx_std_20)
 target_compile_definitions(ConvbasedVST3 PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
-target_link_libraries(ConvbasedVST3 PRIVATE sdk vstgui_support convbased_bridge_core)
+target_link_libraries(ConvbasedVST3 PRIVATE sdk sdk_hosting vstgui_support convbased_bridge_core)
 smtg_target_configure_version_file(ConvbasedVST3)
 
 smtg_target_add_plugin_resources(ConvbasedVST3

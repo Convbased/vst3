@@ -54,7 +54,7 @@
             <view back-color="Field" class="CTextEdit" control-tag="UI::ApiKeyInput"
                   default-value="0" font="~ NormalFont" font-antialias="true"
                   font-color="Text" frame-color="Border" frame-width="1"
-                  immediate-text-change="false" max-value="1" min-value="0"
+                  immediate-text-change="true" max-value="1" min-value="0"
                   mouse-enabled="true" opacity="1" origin="16, 39"
                   placeholder-title="Paste CONVBASED_API_KEY" round-rect-radius="4"
                   secure-style="true" size="350, 34" style-no-frame="false"

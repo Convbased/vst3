@@ -55,6 +55,7 @@ struct EditorControls final {
     bool bypass {false};
     bool applyApiKey {false};
     bool apiKeyInput {false};
+    bool apiKeyInputImmediate {false};
     bool apiKeyInputSecure {false};
     bool apiKeyStatus {false};
 };
@@ -74,6 +75,7 @@ void inspectView(VSTGUI::CView* view, EditorControls& controls) {
             case kApiKeyInputTag:
                 controls.apiKeyInput = true;
                 if (const auto* edit = dynamic_cast<VSTGUI::CTextEdit*>(control)) {
+                    controls.apiKeyInputImmediate = edit->getImmediateTextChange();
                     controls.apiKeyInputSecure = edit->getSecureStyle();
                 }
                 break;
@@ -114,6 +116,8 @@ void testEditorDescription() {
     require(controls.bypass, "editor is missing the Bypass control");
     require(controls.applyApiKey, "editor is missing the Apply key button");
     require(controls.apiKeyInput, "editor is missing the API key field");
+    require(controls.apiKeyInputImmediate,
+            "API key field must synchronize text before Apply key is pressed");
     require(controls.apiKeyInputSecure, "API key field is not masked");
     require(controls.apiKeyStatus, "editor is missing API key status text");
 }

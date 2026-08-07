@@ -9,9 +9,11 @@
 #include "pluginterfaces/base/ibstream.h"
 #include "pluginterfaces/vst/ivstmessage.h"
 #include "pluginterfaces/vst/ivstplugview.h"
+#include "public.sdk/source/vst/hosting/hostclasses.h"
 #include "vstgui/lib/controls/cbuttons.h"
 #include "vstgui/lib/controls/ctextedit.h"
 #include "vstgui/lib/controls/ctextlabel.h"
+#include "vstgui/lib/platform/iplatformtextedit.h"
 #include "vstgui/uidescription/icontroller.h"
 
 #include <algorithm>
@@ -53,12 +55,19 @@ public:
             return;
         }
 
-        const auto applied = owner_.submitApiKey(apiKeyInput_->getText().data());
+        std::string apiKey;
+        if (const auto platformTextEdit = apiKeyInput_->getPlatformTextEdit()) {
+            apiKey = platformTextEdit->getText().data();
+        } else {
+            apiKey = apiKeyInput_->getText().data();
+        }
+        const auto applied = owner_.submitApiKey(apiKey);
+        std::fill(apiKey.begin(), apiKey.end(), '\0');
         if (applied) {
             apiKeyInput_->setText("");
             setStatus("Applied for this plug-in session. Bridge service will connect.");
         } else {
-            setStatus("Enter 1-512 printable characters, without spaces.");
+            setStatus("Key is invalid or the audio processor is unavailable.");
         }
     }
 
@@ -158,7 +167,7 @@ bool Controller::submitApiKey(std::string_view apiKey) {
     Steinberg::IPtr<Steinberg::Vst::IMessage> message =
         Steinberg::owned(allocateMessage());
     if (message == nullptr) {
-        return false;
+        message = Steinberg::owned(new Steinberg::Vst::HostMessage());
     }
     message->setMessageID(messages::kApiKeyMessageId);
     auto* attributes = message->getAttributes();
