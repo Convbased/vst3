@@ -161,6 +161,7 @@ bool LoopbackBridge::start(const BridgeConfig& config) {
     output_.reset();
     droppedInputSamples_.store(0, std::memory_order_relaxed);
     droppedOutputSamples_.store(0, std::memory_order_relaxed);
+    outputPrimed_.store(false, std::memory_order_relaxed);
     state_.store(BridgeState::connecting, std::memory_order_release);
     running_.store(true, std::memory_order_release);
     try {
@@ -211,13 +212,36 @@ bool LoopbackBridge::pushInput(std::span<const float> interleaved) noexcept {
 
 bool LoopbackBridge::tryPopOutput(std::span<float> interleaved) noexcept {
     if (state() != BridgeState::connected) {
+        outputPrimed_.store(false, std::memory_order_relaxed);
         output_.discardAvailable();
         return false;
     }
-    return output_.pop(interleaved);
+    const auto availableSamples = output_.availableToRead();
+    const auto queueLimit = std::max(maxOutputQueuedSamples(), interleaved.size());
+    if (availableSamples > queueLimit) {
+        auto staleSamples = availableSamples - queueLimit;
+        staleSamples -= staleSamples % config_.channels;
+        const auto discarded = output_.discardOldest(staleSamples);
+        droppedOutputSamples_.fetch_add(discarded, std::memory_order_relaxed);
+        outputPrimed_.store(false, std::memory_order_relaxed);
+        return false;
+    }
+    if (!outputPrimed_.load(std::memory_order_relaxed)) {
+        const auto primeThreshold = std::max(outputPrimeSamples(), interleaved.size());
+        if (availableSamples < primeThreshold) {
+            return false;
+        }
+        outputPrimed_.store(true, std::memory_order_relaxed);
+    }
+    if (!output_.pop(interleaved)) {
+        outputPrimed_.store(false, std::memory_order_relaxed);
+        return false;
+    }
+    return true;
 }
 
 void LoopbackBridge::discardOutput() noexcept {
+    outputPrimed_.store(false, std::memory_order_relaxed);
     output_.discardAvailable();
 }
 
@@ -231,6 +255,30 @@ std::uint64_t LoopbackBridge::droppedInputSamples() const noexcept {
 
 std::uint64_t LoopbackBridge::droppedOutputSamples() const noexcept {
     return droppedOutputSamples_.load(std::memory_order_relaxed);
+}
+
+std::size_t LoopbackBridge::queuedOutputSamples() const noexcept {
+    return output_.availableToRead();
+}
+
+std::size_t LoopbackBridge::maxInputQueuedSamples() const noexcept {
+    const auto frames = std::max<std::size_t>(
+        1, static_cast<std::size_t>(config_.sampleRate) * kMaxInputQueuedMilliseconds /
+               1'000U);
+    return frames * config_.channels;
+}
+
+std::size_t LoopbackBridge::maxOutputQueuedSamples() const noexcept {
+    const auto frames = std::max<std::size_t>(
+        1, static_cast<std::size_t>(config_.sampleRate) * kMaxOutputQueuedMilliseconds /
+               1'000U);
+    return frames * config_.channels;
+}
+
+std::size_t LoopbackBridge::outputPrimeSamples() const noexcept {
+    const auto frames = std::max<std::size_t>(
+        1, static_cast<std::size_t>(config_.sampleRate) * kOutputPrimeMilliseconds / 1'000U);
+    return frames * config_.channels;
 }
 
 std::uint16_t LoopbackBridge::portFromEnvironment() noexcept {
@@ -316,7 +364,15 @@ void LoopbackBridge::run() noexcept {
         while (connectionAlive && running_.load(std::memory_order_acquire) &&
                credentialGeneration_.load(std::memory_order_acquire) == credentialGeneration) {
             bool sentAudio = false;
-            const auto availableSamples = input_.availableToRead();
+            auto availableSamples = input_.availableToRead();
+            const auto queueLimit = maxInputQueuedSamples();
+            if (availableSamples > queueLimit) {
+                auto staleSamples = availableSamples - queueLimit;
+                staleSamples -= staleSamples % config_.channels;
+                const auto discarded = input_.discardOldest(staleSamples);
+                droppedInputSamples_.fetch_add(discarded, std::memory_order_relaxed);
+                availableSamples -= discarded;
+            }
             if (availableSamples >= config_.channels) {
                 auto sampleCount = std::min<std::size_t>(availableSamples,
                                                         chunkFrames * config_.channels);

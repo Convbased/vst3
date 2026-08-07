@@ -54,6 +54,15 @@ public:
         return static_cast<std::size_t>(write - read);
     }
 
+    [[nodiscard]] std::size_t discardOldest(std::size_t sampleCount) noexcept {
+        const auto read = readIndex_.load(std::memory_order_relaxed);
+        const auto write = writeIndex_.load(std::memory_order_acquire);
+        const auto discarded =
+            std::min(sampleCount, static_cast<std::size_t>(write - read));
+        readIndex_.store(read + discarded, std::memory_order_release);
+        return discarded;
+    }
+
     [[nodiscard]] constexpr std::size_t capacity() const noexcept {
         return CapacitySamples;
     }
@@ -66,8 +75,7 @@ public:
 
     // Consumer-only operation used to discard stale data after a disconnect.
     void discardAvailable() noexcept {
-        const auto write = writeIndex_.load(std::memory_order_acquire);
-        readIndex_.store(write, std::memory_order_release);
+        static_cast<void>(discardOldest(availableToRead()));
     }
 
 private:

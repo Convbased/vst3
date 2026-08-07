@@ -11,7 +11,7 @@
         <color name="Accent Pressed" rgba="#269a6dff"/>
     </colors>
     <control-tags>
-        <control-tag name="Mix" tag="100"/>
+        <control-tag name="ConvertedLevel" tag="100"/>
         <control-tag name="Bypass" tag="101"/>
         <control-tag name="UI::ApplyApiKey" tag="1000"/>
         <control-tag name="UI::ApiKeyInput" tag="1001"/>
@@ -75,7 +75,7 @@
                   max-value="1" min-value="0" mouse-enabled="false" opacity="1"
                   origin="16, 82" size="480, 18" style-no-frame="true"
                   text-alignment="left" text-inset="0, 0"
-                  title="Not applied. Audio remains dry until a key is entered."
+                  title="Not applied. Output is silent unless Bypass is enabled."
                   transparent="true"/>
             <view back-color="Panel" class="CTextLabel" font="~ NormalFontSmaller"
                   font-antialias="true" font-color="Muted" frame-color="Panel"
@@ -88,17 +88,17 @@
         <view back-color="Canvas" class="CTextLabel" font="~ NormalFont"
               font-antialias="true" font-color="Text" frame-color="Canvas"
               frame-width="0" mouse-enabled="false" opacity="1" origin="24, 224"
-              size="54, 24" style-no-frame="true" text-alignment="left"
-              text-inset="0, 0" title="Mix" transparent="true"/>
-        <view class="CSlider" control-tag="Mix" default-value="1" draw-back="true"
+              size="82, 24" style-no-frame="true" text-alignment="left"
+              text-inset="0, 0" title="Converted" transparent="true"/>
+        <view class="CSlider" control-tag="ConvertedLevel" default-value="1" draw-back="true"
               draw-back-color="Border" draw-frame="false" draw-value="true"
               draw-value-color="Accent" draw-value-from-center="false"
               draw-value-inverted="false" max-value="1" min-value="0"
               mode="free click" mouse-enabled="true" opacity="1"
-              orientation="horizontal" origin="82, 226" reverse-orientation="false"
-              size="268, 20" transparent="false" transparent-handle="true"
+              orientation="horizontal" origin="110, 226" reverse-orientation="false"
+              size="240, 20" transparent="false" transparent-handle="true"
               wants-focus="true" wheel-inc-value="0.05" zoom-factor="10"/>
-        <view back-color="Field" class="CTextEdit" control-tag="Mix" default-value="1"
+        <view back-color="Field" class="CTextEdit" control-tag="ConvertedLevel" default-value="1"
               font="~ NormalFontSmall" font-antialias="true" font-color="Text"
               frame-color="Border" frame-width="1" immediate-text-change="false"
               max-value="1" min-value="0" mouse-enabled="true" opacity="1"

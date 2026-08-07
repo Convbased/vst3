@@ -6,7 +6,7 @@
 namespace convbased::vst3 {
 
 enum ParameterIds : Steinberg::Vst::ParamID {
-    kMixId = 100,
+    kConvertedLevelId = 100,
     kBypassId = 101,
 };
 

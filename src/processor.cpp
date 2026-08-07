@@ -1,5 +1,6 @@
 #include "processor.hpp"
 
+#include "audio_routing.hpp"
 #include "bridge_protocol.hpp"
 #include "plugin_ids.hpp"
 #include "plugin_messages.hpp"
@@ -141,22 +142,54 @@ Steinberg::tresult PLUGIN_API Processor::process(Steinberg::Vst::ProcessData& da
         std::span<const float>(inputScratch_.data(), sampleCount)));
     const auto hasConverted = bridge_.tryPopOutput(
         std::span<float>(outputScratch_.data(), sampleCount));
-    const auto wet = bypass_ || !hasConverted ? 0.0 : std::clamp(mix_, 0.0, 1.0);
-    const auto dry = 1.0 - wet;
+    const auto gains = selectRoutingGains(bypass_, hasConverted, convertedLevel_);
+    const auto targetRoute = gains.original > 0.0F
+                                 ? OutputRoute::original
+                                 : (gains.converted > 0.0F ? OutputRoute::converted
+                                                           : OutputRoute::silent);
+    if (targetRoute != outputRoute_) {
+        transitionStart_ = lastOutput_;
+        if (outputRoute_ == OutputRoute::original && targetRoute != OutputRoute::original) {
+            transitionStart_.fill(0.0F);
+        }
+        outputRoute_ = targetRoute;
+        transitionFramesRemaining_ = declickFrames_;
+    }
 
+    bool hasNonSilentOutput = false;
     for (Steinberg::int32 frame = 0; frame < data.numSamples; ++frame) {
+        const auto completedTransitionFrames =
+            declickFrames_ - std::min(declickFrames_, transitionFramesRemaining_) + 1U;
         for (Steinberg::int32 channel = 0; channel < channels; ++channel) {
             auto* output = data.outputs[0].channelBuffers32[channel];
             if (output == nullptr) {
                 continue;
             }
             const auto index = static_cast<std::size_t>(frame) * channels + channel;
-            output[frame] = static_cast<float>(inputScratch_[index] * dry +
-                                               outputScratch_[index] * wet);
+            float target = 0.0F;
+            if (gains.original > 0.0F) {
+                target = inputScratch_[index];
+            } else if (gains.converted > 0.0F) {
+                target = outputScratch_[index] * gains.converted;
+            }
+            output[frame] = transitionFramesRemaining_ > 0
+                                ? interpolateTransition(
+                                      transitionStart_[static_cast<std::size_t>(channel)],
+                                      target, completedTransitionFrames, declickFrames_)
+                                : target;
+            lastOutput_[static_cast<std::size_t>(channel)] = output[frame];
+            hasNonSilentOutput = hasNonSilentOutput || output[frame] != 0.0F;
+        }
+        if (transitionFramesRemaining_ > 0) {
+            --transitionFramesRemaining_;
         }
     }
 
-    data.outputs[0].silenceFlags = wet == 0.0 ? data.inputs[0].silenceFlags : 0;
+    if (!hasNonSilentOutput) {
+        data.outputs[0].silenceFlags = (Steinberg::uint64 {1} << channels) - 1;
+    } else {
+        data.outputs[0].silenceFlags = 0;
+    }
     return Steinberg::kResultTrue;
 }
 
@@ -166,13 +199,15 @@ Steinberg::tresult PLUGIN_API Processor::setState(Steinberg::IBStream* state) {
     }
     Steinberg::IBStreamer streamer(state, kLittleEndian);
     Steinberg::int32 version = 0;
-    float savedMix = 1.0F;
+    float savedConvertedLevel = 1.0F;
     Steinberg::int32 savedBypass = 0;
-    if (!streamer.readInt32(version) || version != 1 || !streamer.readFloat(savedMix) ||
+    if (!streamer.readInt32(version) || version != 1 ||
+        !streamer.readFloat(savedConvertedLevel) ||
         !streamer.readInt32(savedBypass)) {
         return Steinberg::kResultFalse;
     }
-    mix_ = std::clamp(static_cast<Steinberg::Vst::ParamValue>(savedMix), 0.0, 1.0);
+    convertedLevel_ = std::clamp(
+        static_cast<Steinberg::Vst::ParamValue>(savedConvertedLevel), 0.0, 1.0);
     bypass_ = savedBypass != 0;
     return Steinberg::kResultTrue;
 }
@@ -182,7 +217,8 @@ Steinberg::tresult PLUGIN_API Processor::getState(Steinberg::IBStream* state) {
         return Steinberg::kResultFalse;
     }
     Steinberg::IBStreamer streamer(state, kLittleEndian);
-    const auto ok = streamer.writeInt32(1) && streamer.writeFloat(static_cast<float>(mix_)) &&
+    const auto ok = streamer.writeInt32(1) &&
+                    streamer.writeFloat(static_cast<float>(convertedLevel_)) &&
                     streamer.writeInt32(bypass_ ? 1 : 0);
     return ok ? Steinberg::kResultTrue : Steinberg::kResultFalse;
 }
@@ -230,8 +266,8 @@ void Processor::applyParameterChanges(Steinberg::Vst::IParameterChanges* changes
             Steinberg::kResultTrue) {
             continue;
         }
-        if (queue->getParameterId() == kMixId) {
-            mix_ = std::clamp(value, 0.0, 1.0);
+        if (queue->getParameterId() == kConvertedLevelId) {
+            convertedLevel_ = std::clamp(value, 0.0, 1.0);
         } else if (queue->getParameterId() == kBypassId) {
             bypass_ = value > 0.5;
         }
@@ -244,6 +280,13 @@ void Processor::prepareScratch() {
                          static_cast<std::size_t>(std::max<Steinberg::int32>(1, channelCount_));
     inputScratch_.assign(samples, 0.0F);
     outputScratch_.assign(samples, 0.0F);
+    const auto sampleRate = std::clamp(processSetup.sampleRate, 8'000.0, 384'000.0);
+    declickFrames_ = static_cast<std::uint32_t>(
+        std::max(1LL, std::llround(sampleRate * 0.003)));
+    lastOutput_.fill(0.0F);
+    transitionStart_.fill(0.0F);
+    transitionFramesRemaining_ = 0;
+    outputRoute_ = OutputRoute::silent;
 }
 
 } // namespace convbased::vst3

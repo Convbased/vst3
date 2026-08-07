@@ -65,7 +65,7 @@ public:
         std::fill(apiKey.begin(), apiKey.end(), '\0');
         if (applied) {
             apiKeyInput_->setText("");
-            setStatus("Applied for this plug-in session. Bridge service will connect.");
+            setStatus("Applied. Original is blocked; Bypass restores it.");
         } else {
             setStatus("Key is invalid or the audio processor is unavailable.");
         }
@@ -87,8 +87,8 @@ public:
         } else if (control->getTag() == kApiKeyStatusTag) {
             status_ = dynamic_cast<VSTGUI::CTextLabel*>(control);
             setStatus(owner_.apiKeyApplied()
-                          ? "Already applied for this plug-in session."
-                          : "Not applied. Audio remains dry until a key is entered.");
+                          ? "Applied. Original is blocked; Bypass restores it."
+                          : "Not applied. Output is silent unless Bypass is enabled.");
         }
         return view;
     }
@@ -114,8 +114,9 @@ Steinberg::tresult PLUGIN_API Controller::initialize(Steinberg::FUnknown* contex
         return result;
     }
 
-    parameters.addParameter(STR16("Mix"), STR16("%"), 0, 1.0,
-                            Steinberg::Vst::ParameterInfo::kCanAutomate, kMixId);
+    parameters.addParameter(STR16("Converted Level"), STR16("%"), 0, 1.0,
+                            Steinberg::Vst::ParameterInfo::kCanAutomate,
+                            kConvertedLevelId);
     parameters.addParameter(STR16("Bypass"), nullptr, 1, 0.0,
                             Steinberg::Vst::ParameterInfo::kCanAutomate |
                                 Steinberg::Vst::ParameterInfo::kIsBypass,
@@ -138,13 +139,15 @@ Steinberg::tresult PLUGIN_API Controller::setComponentState(Steinberg::IBStream*
 
     Steinberg::IBStreamer streamer(state, kLittleEndian);
     Steinberg::int32 version = 0;
-    float mix = 1.0F;
+    float convertedLevel = 1.0F;
     Steinberg::int32 bypass = 0;
-    if (!streamer.readInt32(version) || version != 1 || !streamer.readFloat(mix) ||
+    if (!streamer.readInt32(version) || version != 1 ||
+        !streamer.readFloat(convertedLevel) ||
         !streamer.readInt32(bypass)) {
         return Steinberg::kResultFalse;
     }
-    setParamNormalized(kMixId, std::clamp(static_cast<double>(mix), 0.0, 1.0));
+    setParamNormalized(kConvertedLevelId,
+                       std::clamp(static_cast<double>(convertedLevel), 0.0, 1.0));
     setParamNormalized(kBypassId, bypass == 0 ? 0.0 : 1.0);
     return Steinberg::kResultTrue;
 }

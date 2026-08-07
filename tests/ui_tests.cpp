@@ -20,7 +20,7 @@
 
 namespace {
 
-constexpr std::int32_t kMixTag = 100;
+constexpr std::int32_t kConvertedLevelTag = 100;
 constexpr std::int32_t kBypassTag = 101;
 constexpr std::int32_t kApplyApiKeyTag = 1'000;
 constexpr std::int32_t kApiKeyInputTag = 1'001;
@@ -51,7 +51,7 @@ public:
 };
 
 struct EditorControls final {
-    std::uint32_t mixCount {0};
+    std::uint32_t convertedLevelCount {0};
     bool bypass {false};
     bool applyApiKey {false};
     bool apiKeyInput {false};
@@ -63,8 +63,8 @@ struct EditorControls final {
 void inspectView(VSTGUI::CView* view, EditorControls& controls) {
     if (auto* control = dynamic_cast<VSTGUI::CControl*>(view)) {
         switch (control->getTag()) {
-            case kMixTag:
-                ++controls.mixCount;
+            case kConvertedLevelTag:
+                ++controls.convertedLevelCount;
                 break;
             case kBypassTag:
                 controls.bypass = true;
@@ -112,7 +112,8 @@ void testEditorDescription() {
 
     EditorControls controls;
     inspectView(view, controls);
-    require(controls.mixCount == 2, "editor must expose a Mix slider and value field");
+    require(controls.convertedLevelCount == 2,
+            "editor must expose a converted-level slider and value field");
     require(controls.bypass, "editor is missing the Bypass control");
     require(controls.applyApiKey, "editor is missing the Apply key button");
     require(controls.apiKeyInput, "editor is missing the API key field");
@@ -120,6 +121,8 @@ void testEditorDescription() {
             "API key field must synchronize text before Apply key is pressed");
     require(controls.apiKeyInputSecure, "API key field is not masked");
     require(controls.apiKeyStatus, "editor is missing API key status text");
+    require(contents.find("Audio remains dry") == std::string::npos,
+            "editor must not promise an automatic original-audio fallback");
 }
 
 } // namespace

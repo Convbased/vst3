@@ -4,6 +4,7 @@
 
 #include "public.sdk/source/vst/vstaudioeffect.h"
 
+#include <array>
 #include <cstdint>
 #include <vector>
 
@@ -36,13 +37,24 @@ public:
     Steinberg::tresult PLUGIN_API notify(Steinberg::Vst::IMessage* message) SMTG_OVERRIDE;
 
 private:
+    enum class OutputRoute : std::uint8_t {
+        silent,
+        original,
+        converted,
+    };
+
     void applyParameterChanges(Steinberg::Vst::IParameterChanges* changes) noexcept;
     void prepareScratch();
 
     bridge::LoopbackBridge bridge_ {};
     std::vector<float> inputScratch_ {};
     std::vector<float> outputScratch_ {};
-    Steinberg::Vst::ParamValue mix_ {1.0};
+    std::array<float, bridge::LoopbackBridge::kMaxChannels> lastOutput_ {};
+    std::array<float, bridge::LoopbackBridge::kMaxChannels> transitionStart_ {};
+    Steinberg::Vst::ParamValue convertedLevel_ {1.0};
+    std::uint32_t declickFrames_ {1};
+    std::uint32_t transitionFramesRemaining_ {0};
+    OutputRoute outputRoute_ {OutputRoute::silent};
     Steinberg::int32 channelCount_ {2};
     bool bypass_ {false};
 };

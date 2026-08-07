@@ -1,4 +1,5 @@
 #include "audio_ring_buffer.hpp"
+#include "audio_routing.hpp"
 #include "bridge_protocol.hpp"
 #include "loopback_bridge.hpp"
 
@@ -30,6 +31,8 @@ using convbased::bridge::LoopbackBridge;
 using convbased::bridge::SpscFloatRingBuffer;
 using convbased::bridge::protocol::FrameHeader;
 using convbased::bridge::protocol::MessageType;
+using convbased::vst3::interpolateTransition;
+using convbased::vst3::selectRoutingGains;
 
 void require(bool condition, std::string_view message) {
     if (!condition) {
@@ -53,6 +56,17 @@ void testRingBufferWrapsWithoutReordering() {
             "ring wrap changed sample order");
 }
 
+void testRingBufferCanDiscardStaleSamples() {
+    SpscFloatRingBuffer<8> ring;
+    const std::array input {1.0F, 2.0F, 3.0F, 4.0F, 5.0F, 6.0F};
+    require(ring.push(input), "ring rejected samples before stale discard");
+    require(ring.discardOldest(4) == 4, "ring discarded the wrong sample count");
+
+    std::array<float, 2> output {};
+    require(ring.pop(output), "ring could not read after stale discard");
+    require(output == std::array {5.0F, 6.0F}, "ring did not retain the newest samples");
+}
+
 void testProtocolRoundTrip() {
     const FrameHeader inputHeader {MessageType::audioInput, 1'024, 99};
     const auto wireHeader = convbased::bridge::protocol::encodeHeader(inputHeader);
@@ -73,6 +87,29 @@ void testProtocolRoundTrip() {
                 outputHello.channels == inputHello.channels &&
                 outputHello.maxBlockFrames == inputHello.maxBlockFrames,
             "HELLO changed during round trip");
+}
+
+void testRoutingBlocksOriginalUnlessBypassed() {
+    const auto waiting = selectRoutingGains(false, false, 1.0);
+    require(waiting.original == 0.0F && waiting.converted == 0.0F,
+            "waiting state leaked original audio");
+
+    const auto connected = selectRoutingGains(false, true, 0.25);
+    require(connected.original == 0.0F && connected.converted == 0.25F,
+            "active conversion mixed original audio");
+
+    const auto bypassed = selectRoutingGains(true, true, 1.0);
+    require(bypassed.original == 1.0F && bypassed.converted == 0.0F,
+            "Bypass did not restore original audio exclusively");
+}
+
+void testDeclickTransitionReachesTargetSmoothly() {
+    require(interpolateTransition(1.0F, 0.0F, 0, 4) == 1.0F,
+            "declick transition changed its starting sample");
+    require(interpolateTransition(1.0F, 0.0F, 2, 4) == 0.5F,
+            "declick transition did not interpolate its midpoint");
+    require(interpolateTransition(1.0F, 0.0F, 4, 4) == 0.0F,
+            "declick transition did not reach silence");
 }
 
 bool receiveExact(SOCKET socketHandle, std::span<std::byte> destination) {
@@ -123,7 +160,7 @@ void testLoopbackTransport() {
 
     std::atomic<bool> releaseServer {false};
     std::exception_ptr serverFailure;
-    std::thread server([&] {
+    std::jthread server([&] {
         try {
             const auto client = ::accept(listener, nullptr, nullptr);
             require(client != INVALID_SOCKET, "test server accept failed");
@@ -159,11 +196,15 @@ void testLoopbackTransport() {
             require(header.payloadBytes == payload.size() && receiveExact(client, payload),
                     "test server did not receive expected audio payload");
 
-            const auto responseHeader = convbased::bridge::protocol::encodeHeader(
-                {MessageType::audioOutput, header.payloadBytes, header.sequence});
-            require(sendExact(client, responseHeader) && sendExact(client, payload),
-                    "test server could not echo converted audio");
-            while (!releaseServer.load(std::memory_order_acquire)) {
+            for (std::uint32_t response = 0; response < 12; ++response) {
+                const auto responseHeader = convbased::bridge::protocol::encodeHeader(
+                    {MessageType::audioOutput, header.payloadBytes, header.sequence + response});
+                require(sendExact(client, responseHeader) && sendExact(client, payload),
+                        "test server could not prime converted audio");
+            }
+            const auto releaseDeadline = std::chrono::steady_clock::now() + 3s;
+            while (!releaseServer.load(std::memory_order_acquire) &&
+                   std::chrono::steady_clock::now() < releaseDeadline) {
                 std::this_thread::sleep_for(1ms);
             }
             ::shutdown(client, SD_BOTH);
@@ -199,17 +240,30 @@ void testLoopbackTransport() {
     }
     require(bridge->pushInput(input), "bridge rejected input audio");
 
-    std::array<float, 480U * 2U> output {};
-    bool received = false;
-    while (std::chrono::steady_clock::now() < deadline) {
-        if (bridge->tryPopOutput(output)) {
-            received = true;
-            break;
-        }
+    const auto expectedOutputSamples = input.size() * 12;
+    while (bridge->queuedOutputSamples() < expectedOutputSamples &&
+           std::chrono::steady_clock::now() < deadline) {
         std::this_thread::sleep_for(2ms);
     }
-    require(received, "bridge did not return echoed audio");
-    require(output == input, "loopback bridge changed PCM samples");
+    require(bridge->queuedOutputSamples() == expectedOutputSamples,
+            "bridge did not retain the complete converted-audio burst");
+
+    std::array<float, 480U * 2U> output {};
+    std::size_t receivedBlocks = 0;
+    while (std::chrono::steady_clock::now() < deadline) {
+        if (bridge->tryPopOutput(output)) {
+            require(output == input, "loopback bridge changed PCM samples");
+            ++receivedBlocks;
+            if (receivedBlocks == 12) {
+                break;
+            }
+        } else {
+            std::this_thread::sleep_for(2ms);
+        }
+    }
+    require(receivedBlocks == 12, "bridge discarded a recoverable converted-audio burst");
+    require(bridge->droppedOutputSamples() == 0,
+            "bridge counted a recoverable converted-audio burst as stale");
 
     releaseServer.store(true, std::memory_order_release);
     bridge->stop();
@@ -226,7 +280,10 @@ void testLoopbackTransport() {
 int main() {
     try {
         testRingBufferWrapsWithoutReordering();
+        testRingBufferCanDiscardStaleSamples();
         testProtocolRoundTrip();
+        testRoutingBlocksOriginalUnlessBypassed();
+        testDeclickTransitionReachesTargetSmoothly();
         testLoopbackTransport();
         std::cout << "All bridge tests passed.\n";
         return 0;

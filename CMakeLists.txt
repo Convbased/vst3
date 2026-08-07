@@ -30,6 +30,7 @@ target_compile_definitions(convbased_bridge_core PRIVATE WIN32_LEAN_AND_MEAN NOM
 target_link_libraries(convbased_bridge_core PUBLIC ws2_32)
 
 smtg_add_vst3plugin(ConvbasedVST3
+    src/audio_routing.hpp
     src/controller.cpp
     src/controller.hpp
     src/factory.cpp
