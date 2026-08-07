@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Convbased: 附加到 FL Studio",
+            "type": "cppvsdbg",
+            "request": "attach",
+            "processId": "${command:pickProcess}",
+            "symbolSearchPath": "${workspaceFolder}\\build\\WIN_PDB64\\Debug",
+            "logging": {
+                "moduleLoad": true,
+                "exceptions": true
+            }
+        }
+    ]
+}

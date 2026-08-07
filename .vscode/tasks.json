@@ -1,0 +1,35 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Convbased: 构建并安装 Debug 插件",
+            "type": "process",
+            "command": "powershell.exe",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}\\scripts\\debug-flstudio.ps1",
+                "-SkipLaunch",
+                "-SkipBridge"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Convbased: 启动 FL Studio 与桥接服务日志",
+            "type": "process",
+            "command": "powershell.exe",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}\\scripts\\debug-flstudio.ps1",
+                "-SkipBuild",
+                "-SkipInstall"
+            ],
+            "problemMatcher": []
+        }
+    ]
+}
