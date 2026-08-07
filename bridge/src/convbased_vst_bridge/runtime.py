@@ -5,11 +5,17 @@ import contextlib
 import json
 import logging
 import sys
+import time
 from array import array
 from dataclasses import dataclass
 from typing import Any
 
-from .audio import PcmReservoir, PluginAudioTrack, interleave_mono
+from .audio import (
+    PcmReservoir,
+    PluginAudioTrack,
+    interleave_mono,
+    set_audio_jitter_prefetch,
+)
 from .profile import DeviceProfileMonitor, ProfileSnapshot
 from .protocol import (
     MessageType,
@@ -29,6 +35,7 @@ class BridgeOptions:
     graphql_url: str | None = None
     host: str = "127.0.0.1"
     port: int = 43_127
+    jitter_prefetch: int = 3
 
 
 class BridgeSession:
@@ -44,6 +51,9 @@ class BridgeSession:
         self.write_lock = asyncio.Lock()
         self.sequence = 0
         self.client: Any = None
+        self.output_samples = 0
+        self.output_max_gap_ms = 0.0
+        self._last_output_at: float | None = None
 
     async def run(self) -> None:
         first = await read_message(self.reader)
@@ -80,7 +90,9 @@ class BridgeSession:
             self.api_key = ""
             raise
 
-        reservoir = PcmReservoir(hello.channels, max_samples=hello.sample_rate * 2)
+        reservoir = PcmReservoir(
+            hello.channels, max_samples=max(1, hello.sample_rate * 60 // 1_000)
+        )
         source = PluginAudioTrack(reservoir, hello.sample_rate)
         input_task = asyncio.create_task(
             self._read_audio_input(reservoir), name="plugin-input"
@@ -91,6 +103,7 @@ class BridgeSession:
         client: Any = None
         connect_task: asyncio.Task[None] | None = None
         output_task: asyncio.Task[None] | None = None
+        metrics_task: asyncio.Task[None] | None = None
         profile_change_task: asyncio.Task[ProfileSnapshot] | None = None
         try:
             snapshot = self.profile_monitor.snapshot
@@ -103,6 +116,7 @@ class BridgeSession:
             else:
                 detail = None
             if detail is not None:
+                _log.info("device profile is waiting: %s", detail)
                 await self._send_status("waiting", detail)
 
             done, _pending = await asyncio.wait(
@@ -114,6 +128,15 @@ class BridgeSession:
             profile = snapshot.profile
             if profile is None or not profile.model_id:
                 raise RuntimeError("device profile became unavailable")
+            _log.info(
+                "latency profile: block_time=%s, crossfade_time=%s, extra_time=%s, "
+                "lookahead=%s/%s",
+                profile.preferences.get("block_time", "server-default"),
+                profile.preferences.get("crossfade_time", "server-default"),
+                profile.preferences.get("extra_time", "server-default"),
+                profile.preferences.get("enable_lookahead", "server-default"),
+                profile.preferences.get("lookahead_time", "server-default"),
+            )
 
             await self._send_status("connecting", "negotiating Convbased WebRTC")
             client = self._create_client()
@@ -152,12 +175,26 @@ class BridgeSession:
             if connect_task in done:
                 connect_task.result()
             track = await remote_track
+            peer_connection = client.peer_connection
+            if peer_connection is None or not set_audio_jitter_prefetch(
+                peer_connection, track, self.options.jitter_prefetch
+            ):
+                _log.warning("could not tune the audio jitter buffer; using the SDK default")
+            else:
+                _log.info(
+                    "audio jitter prefetch set to %s frame(s)",
+                    self.options.jitter_prefetch,
+                )
             output_task = asyncio.create_task(
                 self._write_converted_audio(track, hello.sample_rate, hello.channels),
                 name="converted-output",
             )
             await connect_task
             await self._send_status("ready", "converted audio is flowing")
+            metrics_task = asyncio.create_task(
+                self._log_runtime_metrics(reservoir, track, hello.sample_rate),
+                name="latency-metrics",
+            )
             profile_change_task = asyncio.create_task(
                 self.profile_monitor.wait_for_change(snapshot.version),
                 name="device-profile-change",
@@ -180,6 +217,7 @@ class BridgeSession:
                 profile_task,
                 connect_task,
                 output_task,
+                metrics_task,
                 profile_change_task,
             ):
                 if task is not None and not task.done():
@@ -189,6 +227,7 @@ class BridgeSession:
                 profile_task,
                 connect_task,
                 output_task,
+                metrics_task,
                 profile_change_task,
             ):
                 if task is not None:
@@ -233,8 +272,16 @@ class BridgeSession:
         resampler = AudioResampler(format="flt", layout="mono", rate=sample_rate)
         while True:
             frame = await track.recv()
+            received_at = time.monotonic()
+            if self._last_output_at is not None:
+                self.output_max_gap_ms = max(
+                    self.output_max_gap_ms,
+                    (received_at - self._last_output_at) * 1_000,
+                )
+            self._last_output_at = received_at
             converted_frames = resampler.resample(frame)
             for converted in converted_frames:
+                self.output_samples += converted.samples
                 byte_count = converted.samples * 4
                 mono = array("f")
                 mono.frombytes(bytes(converted.planes[0])[:byte_count])
@@ -247,6 +294,72 @@ class BridgeSession:
                     if sys.byteorder != "little":
                         part.byteswap()
                     await self._send(MessageType.AUDIO_OUTPUT, part.tobytes())
+
+    async def _log_runtime_metrics(
+        self, reservoir: PcmReservoir, track: Any, sample_rate: int
+    ) -> None:
+        last_at = time.monotonic()
+        last_output_samples = self.output_samples
+        last_dropped_samples = reservoir.dropped_samples
+        while True:
+            await asyncio.sleep(2.0)
+            try:
+                now = time.monotonic()
+                elapsed = max(now - last_at, 0.001)
+                output_realtime = (
+                    (self.output_samples - last_output_samples) / sample_rate / elapsed
+                )
+                dropped_ms = (
+                    (reservoir.dropped_samples - last_dropped_samples)
+                    * 1_000
+                    / sample_rate
+                )
+                rtt_ms = 0.0
+                jitter_ms = 0.0
+                packets_lost = 0
+                peer_connection = (
+                    self.client.peer_connection if self.client is not None else None
+                )
+                if peer_connection is not None:
+                    report = await peer_connection.getStats()
+                    for entry in report.values():
+                        kind = getattr(entry, "type", None)
+                        media_kind = getattr(entry, "kind", None)
+                        if kind == "remote-inbound-rtp" and media_kind == "audio":
+                            rtt = getattr(entry, "roundTripTime", None)
+                            if isinstance(rtt, (int, float)):
+                                rtt_ms = rtt * 1_000
+                        elif kind == "inbound-rtp" and media_kind == "audio":
+                            jitter = getattr(entry, "jitter", 0)
+                            if isinstance(jitter, (int, float)):
+                                jitter_ms = jitter * 1_000 / 48_000
+                            packets_lost = int(getattr(entry, "packetsLost", 0) or 0)
+                queue = getattr(track, "_queue", None)
+                decoded_frames = queue.qsize() if queue is not None else -1
+                transport = self.writer.transport
+                write_buffer_bytes = (
+                    transport.get_write_buffer_size() if transport is not None else -1
+                )
+                _log.debug(
+                    "latency stats: rtt_ms=%s, jitter_ms=%.1f, packets_lost=%s, "
+                    "input_buffer_ms=%.1f, input_dropped_ms=%.1f, output_rate=%.3f, "
+                    "output_max_gap_ms=%.1f, decoded_frames=%s, tcp_write_bytes=%s",
+                    round(rtt_ms, 1),
+                    jitter_ms,
+                    packets_lost,
+                    reservoir.available_samples * 1_000 / sample_rate,
+                    dropped_ms,
+                    output_realtime,
+                    self.output_max_gap_ms,
+                    decoded_frames,
+                    write_buffer_bytes,
+                )
+                last_at = now
+                last_output_samples = self.output_samples
+                last_dropped_samples = reservoir.dropped_samples
+                self.output_max_gap_ms = 0.0
+            except Exception as exc:
+                _log.debug("latency stats unavailable: %s", exc)
 
     async def _send_status(self, state: str, message: str) -> None:
         payload = json.dumps(

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import sys
 import time
 from array import array
@@ -119,15 +120,49 @@ class PluginAudioTrack(AudioStreamTrack):  # type: ignore[misc,valid-type]
             if delay > 0:
                 await asyncio.sleep(delay)
 
-        samples = self._reservoir.read(self._samples_per_frame)
+        samples = float_to_pcm16(self._reservoir.read(self._samples_per_frame))
         if sys.byteorder != "little":
             samples.byteswap()
-        frame = AudioFrame(format="flt", layout="mono", samples=self._samples_per_frame)
+        frame = AudioFrame(format="s16", layout="mono", samples=self._samples_per_frame)
         frame.planes[0].update(samples.tobytes())
         frame.pts = self._timestamp
         frame.sample_rate = self._sample_rate
         frame.time_base = Fraction(1, self._sample_rate)
         return frame
+
+
+def set_audio_jitter_prefetch(peer_connection: Any, track: Any, frames: int) -> bool:
+    """Tune aiortc's audio receiver for low-latency playout."""
+
+    if not 1 <= frames <= 16:
+        raise ValueError("jitter prefetch must be between one and sixteen frames")
+    for receiver in peer_connection.getReceivers():
+        if receiver.track is not track:
+            continue
+        jitter_buffer = getattr(receiver, "_RTCRtpReceiver__jitter_buffer", None)
+        if jitter_buffer is None or not hasattr(jitter_buffer, "_prefetch"):
+            return False
+        jitter_buffer._prefetch = frames
+        return True
+    return False
+
+
+def float_to_pcm16(samples: array[float]) -> array[int]:
+    """Clip normalized float PCM and convert it to signed 16-bit samples."""
+
+    output = array("h")
+    for sample in samples:
+        if not math.isfinite(sample):
+            output.append(0)
+        elif sample <= -1.0:
+            output.append(-32_768)
+        elif sample >= 1.0:
+            output.append(32_767)
+        else:
+            output.append(round(sample * 32_767.0))
+    if output.itemsize != 2:
+        raise RuntimeError("this platform does not use 16-bit C shorts")
+    return output
 
 
 def interleave_mono(samples: array[float], channels: int) -> array[float]:

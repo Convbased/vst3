@@ -1,6 +1,8 @@
 [CmdletBinding()]
 param(
     [int]$Port = 43127,
+    [ValidateRange(1, 16)]
+    [int]$JitterPrefetch = 3,
     [switch]$VerboseLogs
 )
 
@@ -12,7 +14,8 @@ if (-not (Test-Path -LiteralPath $python)) {
 }
 $arguments = @(
     '-m', 'convbased_vst_bridge',
-    '--port', $Port
+    '--port', $Port,
+    '--jitter-prefetch', $JitterPrefetch
 )
 if ($VerboseLogs) {
     $arguments += '--verbose'
