@@ -46,9 +46,17 @@ opening a cloud media session.
 - The plug-in preallocates scratch memory during `setupProcessing()` / `setActive()`.
 - Two single-producer/single-consumer rings isolate the DAW thread from transport stalls.
 - TCP runs only over loopback with `TCP_NODELAY`; reconnection is handled by the worker.
-- If converted audio is unavailable, the plug-in emits dry input instead of blocking.
+- If converted audio is unavailable, the plug-in emits silence. Only Bypass passes the
+  original input.
 - Input/output queues are bounded. Overflow is dropped rather than increasing latency
   without limit.
+- Local input and bridge-service PCM queues keep at most about 60 ms of recent audio. The
+  converted-output queue accepts up to 200 ms of short network bursts so TURN jitter is
+  not mistaken for stale audio; sustained excess is still discarded.
+- Converted output primes about 40 ms before playback and re-primes after an underrun.
+  A 3 ms transition suppresses click and pop artifacts without passing original audio.
+- The bridge service defaults aiortc audio jitter prefetch to three 20 ms frames. Use a lower
+  `--jitter-prefetch` only when the network is stable enough to prioritize latency.
 
 ## Latency semantics
 
@@ -58,9 +66,9 @@ zero-latency: WebRTC packetization, network RTT, model block/crossfade/extra-tim
 settings, and DAW/ASIO buffers remain. Variable remote latency cannot be represented
 correctly as a fixed VST delay-compensation value.
 
-For live monitoring, use 100% wet, a wired network, 48 kHz, a small ASIO buffer, and the
-smallest model settings that remain artifact-free. Dry/wet mixing can comb-filter because
-the converted signal is delayed relative to dry audio.
+For live monitoring, use a wired network, 48 kHz, a small ASIO buffer, and the smallest
+model settings that remain artifact-free. Converted Level changes only the processed
+return gain; it never blends the delayed signal with the original.
 
 ## Local bridge protocol
 
