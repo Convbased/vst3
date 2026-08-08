@@ -112,15 +112,19 @@ void testEditorDescription() {
 
     EditorControls controls;
     inspectView(view, controls);
-    require(controls.convertedLevelCount == 2,
-            "editor must expose a converted-level slider and value field");
-    require(controls.bypass, "editor is missing the Bypass control");
+    require(controls.convertedLevelCount == 0,
+            "editor must hide converted-level debugging controls");
+    require(!controls.bypass, "editor must hide the Bypass debugging control");
     require(controls.applyApiKey, "editor is missing the Apply key button");
     require(controls.apiKeyInput, "editor is missing the API key field");
     require(controls.apiKeyInputImmediate,
             "API key field must synchronize text before Apply key is pressed");
     require(controls.apiKeyInputSecure, "API key field is not masked");
     require(controls.apiKeyStatus, "editor is missing API key status text");
+    require(contents.find("Convbased 实时变声") != std::string::npos,
+            "editor title is not localized to Chinese");
+    require(contents.find("应用密钥") != std::string::npos,
+            "editor actions are not localized to Chinese");
     require(contents.find("Audio remains dry") == std::string::npos,
             "editor must not promise an automatic original-audio fallback");
 }

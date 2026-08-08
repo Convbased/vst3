@@ -56,8 +56,8 @@ target_sources(ConvbasedVST3 PRIVATE resource/win32resource.rc)
 set_property(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" PROPERTY VS_STARTUP_PROJECT ConvbasedVST3)
 
 if(MSVC)
-    target_compile_options(convbased_bridge_core PRIVATE /W4 /permissive- /EHsc)
-    target_compile_options(ConvbasedVST3 PRIVATE /W4 /permissive- /EHsc)
+    target_compile_options(convbased_bridge_core PRIVATE /W4 /permissive- /EHsc /utf-8)
+    target_compile_options(ConvbasedVST3 PRIVATE /W4 /permissive- /EHsc /utf-8)
 endif()
 
 include(CTest)

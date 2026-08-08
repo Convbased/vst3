@@ -65,9 +65,9 @@ public:
         std::fill(apiKey.begin(), apiKey.end(), '\0');
         if (applied) {
             apiKeyInput_->setText("");
-            setStatus("Applied. Original is blocked; Bypass restores it.");
+            setStatus("密钥已应用，正在连接实时变声服务。");
         } else {
-            setStatus("Key is invalid or the audio processor is unavailable.");
+            setStatus("密钥格式无效，或音频处理器暂不可用。");
         }
     }
 
@@ -82,13 +82,13 @@ public:
             apiKeyInput_ = dynamic_cast<VSTGUI::CTextEdit*>(control);
             if (apiKeyInput_ != nullptr) {
                 apiKeyInput_->setSecureStyle(true);
-                apiKeyInput_->setPlaceholderString("Paste CONVBASED_API_KEY");
+                apiKeyInput_->setPlaceholderString("粘贴 CONVBASED_API_KEY");
             }
         } else if (control->getTag() == kApiKeyStatusTag) {
             status_ = dynamic_cast<VSTGUI::CTextLabel*>(control);
             setStatus(owner_.apiKeyApplied()
-                          ? "Applied. Original is blocked; Bypass restores it."
-                          : "Not applied. Output is silent unless Bypass is enabled.");
+                          ? "密钥已应用，正在连接实时变声服务。"
+                          : "尚未应用密钥，转换音频当前为静音。");
         }
         return view;
     }
@@ -115,11 +115,13 @@ Steinberg::tresult PLUGIN_API Controller::initialize(Steinberg::FUnknown* contex
     }
 
     parameters.addParameter(STR16("Converted Level"), STR16("%"), 0, 1.0,
-                            Steinberg::Vst::ParameterInfo::kCanAutomate,
+                            Steinberg::Vst::ParameterInfo::kCanAutomate |
+                                Steinberg::Vst::ParameterInfo::kIsHidden,
                             kConvertedLevelId);
     parameters.addParameter(STR16("Bypass"), nullptr, 1, 0.0,
                             Steinberg::Vst::ParameterInfo::kCanAutomate |
-                                Steinberg::Vst::ParameterInfo::kIsBypass,
+                                Steinberg::Vst::ParameterInfo::kIsBypass |
+                                Steinberg::Vst::ParameterInfo::kIsHidden,
                             kBypassId);
     return Steinberg::kResultTrue;
 }
