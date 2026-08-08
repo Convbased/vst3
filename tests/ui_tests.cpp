@@ -25,6 +25,7 @@ constexpr std::int32_t kBypassTag = 101;
 constexpr std::int32_t kApplyApiKeyTag = 1'000;
 constexpr std::int32_t kApiKeyInputTag = 1'001;
 constexpr std::int32_t kApiKeyStatusTag = 1'002;
+constexpr std::int32_t kClearApiKeyTag = 1'003;
 
 void require(bool condition, std::string_view message) {
     if (!condition) {
@@ -58,6 +59,7 @@ struct EditorControls final {
     bool apiKeyInputImmediate {false};
     bool apiKeyInputSecure {false};
     bool apiKeyStatus {false};
+    bool clearApiKey {false};
 };
 
 void inspectView(VSTGUI::CView* view, EditorControls& controls) {
@@ -81,6 +83,9 @@ void inspectView(VSTGUI::CView* view, EditorControls& controls) {
                 break;
             case kApiKeyStatusTag:
                 controls.apiKeyStatus = true;
+                break;
+            case kClearApiKeyTag:
+                controls.clearApiKey = dynamic_cast<VSTGUI::CTextButton*>(control) != nullptr;
                 break;
             default:
                 break;
@@ -121,10 +126,13 @@ void testEditorDescription() {
             "API key field must synchronize text before Apply key is pressed");
     require(controls.apiKeyInputSecure, "API key field is not masked");
     require(controls.apiKeyStatus, "editor is missing API key status text");
+    require(controls.clearApiKey, "editor is missing the clear-key action");
     require(contents.find("Convbased 实时变声") != std::string::npos,
             "editor title is not localized to Chinese");
-    require(contents.find("应用密钥") != std::string::npos,
+    require(contents.find("保存并连接") != std::string::npos,
             "editor actions are not localized to Chinese");
+    require(contents.find("Windows 加密保存在本机") != std::string::npos,
+            "editor does not explain the encrypted local cache");
     require(contents.find("Audio remains dry") == std::string::npos,
             "editor must not promise an automatic original-audio fallback");
 }

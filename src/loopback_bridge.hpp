@@ -48,6 +48,7 @@ public:
     [[nodiscard]] bool start(const BridgeConfig& config);
     void stop() noexcept;
     [[nodiscard]] bool setApiKey(std::string apiKey);
+    void clearApiKey() noexcept;
 
     [[nodiscard]] bool pushInput(std::span<const float> interleaved) noexcept;
     [[nodiscard]] bool tryPopOutput(std::span<float> interleaved) noexcept;

@@ -9,6 +9,17 @@ endif()
 
 add_test(NAME convbased_bridge_tests COMMAND convbased_bridge_tests)
 
+add_executable(convbased_credential_cache_tests credential_cache_tests.cpp)
+target_compile_features(convbased_credential_cache_tests PRIVATE cxx_std_20)
+target_compile_definitions(convbased_credential_cache_tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
+target_link_libraries(convbased_credential_cache_tests PRIVATE convbased_bridge_core)
+
+if(MSVC)
+    target_compile_options(convbased_credential_cache_tests PRIVATE /W4 /permissive- /EHsc /utf-8)
+endif()
+
+add_test(NAME convbased_credential_cache_tests COMMAND convbased_credential_cache_tests)
+
 add_executable(convbased_ui_tests ui_tests.cpp)
 target_compile_features(convbased_ui_tests PRIVATE cxx_std_20)
 target_compile_definitions(convbased_ui_tests PRIVATE

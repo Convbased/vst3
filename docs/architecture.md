@@ -28,10 +28,13 @@ DAW session rate before it is returned to the plug-in.
 
 ## Control plane
 
-The user enters the API key in the plug-in's masked editor field. The controller sends it
-to the processor as a non-parameter VST message, and the background bridge includes it in
-the loopback session handshake. It is deliberately excluded from processor/controller
-state, parameter automation, presets, and DAW project serialization.
+The user enters the API key in the plug-in's masked editor field. The controller protects
+it with Windows DPAPI and stores the encrypted blob in the current user's local
+application-data directory. The controller restores the key when the editor opens, sends
+it to the processor as a non-parameter VST message, and the background bridge includes it
+in the loopback session handshake. The clear action deletes the encrypted blob and
+disconnects the bridge. The key remains excluded from processor/controller state,
+parameter automation, presets, and DAW project serialization.
 
 Each bridge-service session uses that key to read `myDeviceProfile` from the SDK's default
 GraphQL endpoint. The profile supplies the model, conversion preferences, and real-time

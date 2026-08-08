@@ -228,7 +228,14 @@ Steinberg::tresult PLUGIN_API Processor::notify(Steinberg::Vst::IMessage* messag
         return Steinberg::kInvalidArgument;
     }
     const auto* messageId = message->getMessageID();
-    if (messageId == nullptr || std::strcmp(messageId, messages::kApiKeyMessageId) != 0) {
+    if (messageId == nullptr) {
+        return AudioEffect::notify(message);
+    }
+    if (std::strcmp(messageId, messages::kClearApiKeyMessageId) == 0) {
+        bridge_.clearApiKey();
+        return Steinberg::kResultTrue;
+    }
+    if (std::strcmp(messageId, messages::kApiKeyMessageId) != 0) {
         return AudioEffect::notify(message);
     }
 

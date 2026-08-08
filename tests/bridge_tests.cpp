@@ -265,6 +265,15 @@ void testLoopbackTransport() {
     require(bridge->droppedOutputSamples() == 0,
             "bridge counted a recoverable converted-audio burst as stale");
 
+    bridge->clearApiKey();
+    const auto clearDeadline = std::chrono::steady_clock::now() + 2s;
+    while (bridge->state() != BridgeState::waitingForCredentials &&
+           std::chrono::steady_clock::now() < clearDeadline) {
+        std::this_thread::sleep_for(2ms);
+    }
+    require(bridge->state() == BridgeState::waitingForCredentials,
+            "bridge did not disconnect after clearing the API key");
+
     releaseServer.store(true, std::memory_order_release);
     bridge->stop();
     server.join();

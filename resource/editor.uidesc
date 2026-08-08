@@ -14,6 +14,7 @@
         <control-tag name="UI::ApplyApiKey" tag="1000"/>
         <control-tag name="UI::ApiKeyInput" tag="1001"/>
         <control-tag name="UI::ApiKeyStatus" tag="1002"/>
+        <control-tag name="UI::ClearApiKey" tag="1003"/>
     </control-tags>
     <gradients>
         <gradient name="Apply Button">
@@ -55,7 +56,7 @@
                   immediate-text-change="true" max-value="1" min-value="0"
                   mouse-enabled="true" opacity="1" origin="16, 39"
                   placeholder-title="粘贴 CONVBASED_API_KEY" round-rect-radius="4"
-                  secure-style="true" size="350, 34" style-no-frame="false"
+                  secure-style="true" size="274, 34" style-no-frame="false"
                   style-round-rect="true" text-alignment="left" text-inset="10, 0"
                   title="" transparent="false" wants-focus="true"/>
             <view class="CTextButton" control-tag="UI::ApplyApiKey" default-value="0"
@@ -63,9 +64,16 @@
                   frame-width="0" gradient="Apply Button"
                   gradient-highlighted="Apply Button Pressed" kick-style="true"
                   max-value="1" min-value="0" mouse-enabled="true" opacity="1"
-                  origin="378, 39" round-radius="4" size="118, 34"
+                  origin="302, 39" round-radius="4" size="102, 34"
                   text-alignment="center" text-color="#07130eff"
-                  text-color-highlighted="Text" title="应用密钥" transparent="false"
+                  text-color-highlighted="Text" title="保存并连接" transparent="false"
+                  wants-focus="true"/>
+            <view class="CTextButton" control-tag="UI::ClearApiKey" default-value="0"
+                  font="~ NormalFont" frame-color="Border" frame-width="1"
+                  kick-style="true" max-value="1" min-value="0" mouse-enabled="true"
+                  opacity="1" origin="416, 39" round-radius="4" size="80, 34"
+                  text-alignment="center" text-color="Muted"
+                  text-color-highlighted="Text" title="清除" transparent="true"
                   wants-focus="true"/>
             <view back-color="Panel" class="CTextLabel" control-tag="UI::ApiKeyStatus"
                   default-value="0" font="~ NormalFontSmall" font-antialias="true"
@@ -79,7 +87,7 @@
                   font-antialias="true" font-color="Muted" frame-color="Panel"
                   frame-width="0" mouse-enabled="false" opacity="1" origin="16, 101"
                   size="480, 16" style-no-frame="true" text-alignment="left"
-                  text-inset="0, 0" title="密钥仅保存在内存中，不会写入 DAW 工程。"
+                  text-inset="0, 0" title="密钥由 Windows 加密保存在本机，不会写入 DAW 工程。"
                   transparent="true"/>
         </view>
         <view back-color="Canvas" class="CTextLabel" font="~ NormalFontSmaller"

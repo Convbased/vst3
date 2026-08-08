@@ -199,6 +199,18 @@ bool LoopbackBridge::setApiKey(std::string apiKey) {
     return true;
 }
 
+void LoopbackBridge::clearApiKey() noexcept {
+    {
+        std::scoped_lock lock(credentialMutex_);
+        std::fill(apiKey_.begin(), apiKey_.end(), '\0');
+        apiKey_.clear();
+        credentialGeneration_.fetch_add(1, std::memory_order_release);
+    }
+    input_.discardAvailable();
+    discardOutput();
+    credentialChanged_.notify_all();
+}
+
 bool LoopbackBridge::pushInput(std::span<const float> interleaved) noexcept {
     if (state() != BridgeState::connected) {
         return false;
