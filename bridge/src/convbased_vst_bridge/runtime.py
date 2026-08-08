@@ -16,13 +16,22 @@ from .audio import (
     interleave_mono,
     set_audio_jitter_prefetch,
 )
-from .profile import DeviceProfileMonitor, ProfileSnapshot
+from .profile import (
+    AccountBalanceError,
+    DeviceProfile,
+    DeviceProfileError,
+    DeviceProfileMonitor,
+    ProfileSnapshot,
+    fetch_account_balance,
+)
 from .protocol import (
+    AccountStatus,
     MessageType,
     ProtocolError,
     decode_auth,
     decode_hello,
     read_message,
+    encode_account_status,
     write_message,
 )
 
@@ -79,12 +88,24 @@ class BridgeSession:
             ) from exc
 
         self.api_key = api_key
+        graphql_url = self.options.graphql_url or DEFAULT_GRAPHQL_URL
         self.profile_monitor = DeviceProfileMonitor(
-            graphql_url=self.options.graphql_url or DEFAULT_GRAPHQL_URL,
+            graphql_url=graphql_url,
             api_key=api_key,
         )
         try:
             await self.profile_monitor.start()
+        except DeviceProfileError:
+            with contextlib.suppress(Exception):
+                await self._send_account_status(
+                    None,
+                    authenticated=False,
+                    balance=None,
+                    balance_checked=False,
+                )
+            await self.profile_monitor.close()
+            self.api_key = ""
+            raise
         except Exception:
             await self.profile_monitor.close()
             self.api_key = ""
@@ -105,6 +126,12 @@ class BridgeSession:
         output_task: asyncio.Task[None] | None = None
         metrics_task: asyncio.Task[None] | None = None
         profile_change_task: asyncio.Task[ProfileSnapshot] | None = None
+        account_status_task = asyncio.create_task(
+            self._report_account_status(
+                self.profile_monitor.snapshot.profile, graphql_url, api_key
+            ),
+            name="account-status",
+        )
         try:
             snapshot = self.profile_monitor.snapshot
             if snapshot.profile is None:
@@ -219,6 +246,7 @@ class BridgeSession:
                 output_task,
                 metrics_task,
                 profile_change_task,
+                account_status_task,
             ):
                 if task is not None and not task.done():
                     task.cancel()
@@ -229,6 +257,7 @@ class BridgeSession:
                 output_task,
                 metrics_task,
                 profile_change_task,
+                account_status_task,
             ):
                 if task is not None:
                     with contextlib.suppress(asyncio.CancelledError, Exception):
@@ -239,6 +268,61 @@ class BridgeSession:
             self.client = None
             await self.profile_monitor.close()
             self.api_key = ""
+
+    async def _report_account_status(
+        self, profile: DeviceProfile | None, graphql_url: str, api_key: str
+    ) -> None:
+        await self._send_account_status(
+            profile,
+            authenticated=True,
+            balance=None,
+            balance_checked=False,
+        )
+        try:
+            balance = await fetch_account_balance(
+                graphql_url=graphql_url,
+                api_key=api_key,
+            )
+        except AccountBalanceError as exc:
+            _log.info("account balance is unavailable to this API key: %s", exc)
+            await self._send_account_status(
+                profile,
+                authenticated=True,
+                balance=None,
+                balance_checked=True,
+            )
+            return
+        await self._send_account_status(
+            profile,
+            authenticated=True,
+            balance=balance,
+            balance_checked=True,
+        )
+
+    async def _send_account_status(
+        self,
+        profile: DeviceProfile | None,
+        *,
+        authenticated: bool,
+        balance: float | None,
+        balance_checked: bool,
+    ) -> None:
+        payload = encode_account_status(
+            AccountStatus(
+                account_checked=True,
+                authenticated=authenticated,
+                balance_checked=balance_checked,
+                balance_available=balance is not None,
+                realtime_enabled=(
+                    profile.realtime_enabled if profile is not None else False
+                ),
+                model_configured=bool(profile and profile.model_id),
+                balance=0.0 if balance is None else balance,
+                label=profile.label or "" if profile is not None else "",
+                model_id=profile.model_id or "" if profile is not None else "",
+            )
+        )
+        await self._send(MessageType.ACCOUNT_STATUS, payload)
 
     def _create_client(self) -> Any:
         try:

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "audio_ring_buffer.hpp"
+#include "bridge_protocol.hpp"
 
 #include <array>
 #include <atomic>
@@ -28,6 +29,11 @@ struct BridgeConfig final {
     std::uint32_t maxBlockFrames {1'024};
     std::uint16_t channels {2};
     std::uint16_t port {43'127};
+};
+
+struct AccountStatusSnapshot final {
+    std::uint64_t generation {0};
+    protocol::AccountStatus status {};
 };
 
 class LoopbackBridge final {
@@ -58,12 +64,14 @@ public:
     [[nodiscard]] std::uint64_t droppedInputSamples() const noexcept;
     [[nodiscard]] std::uint64_t droppedOutputSamples() const noexcept;
     [[nodiscard]] std::size_t queuedOutputSamples() const noexcept;
+    [[nodiscard]] AccountStatusSnapshot accountStatusSnapshot() const;
     [[nodiscard]] static std::uint16_t portFromEnvironment() noexcept;
 
 private:
     [[nodiscard]] std::size_t maxInputQueuedSamples() const noexcept;
     [[nodiscard]] std::size_t maxOutputQueuedSamples() const noexcept;
     [[nodiscard]] std::size_t outputPrimeSamples() const noexcept;
+    void resetAccountStatus();
     void run() noexcept;
 
     BridgeConfig config_ {};
@@ -78,6 +86,9 @@ private:
     std::condition_variable credentialChanged_ {};
     std::string apiKey_ {};
     std::atomic<std::uint64_t> credentialGeneration_ {0};
+    mutable std::mutex accountStatusMutex_ {};
+    protocol::AccountStatus accountStatus_ {};
+    std::uint64_t accountStatusGeneration_ {0};
     std::thread worker_ {};
 };
 

@@ -43,6 +43,12 @@ WebRTC session so the plug-in's loopback worker reconnects with the new configur
 missing model or disabled real-time switch leaves the local bridge waiting without
 opening a cloud media session.
 
+The bridge service also attempts `me.wallet_balance` with the same API key. It sends the result,
+device label, and model readiness back through an `ACCOUNT_STATUS` frame. The bridge
+worker stores the latest snapshot, while the editor requests it through non-parameter VST
+messages on the UI thread. If the service's API-key scope policy blocks `me`, the snapshot
+marks balance as checked but unavailable; profile authentication and audio continue.
+
 ## Real-time constraints
 
 - `process()` performs no allocation, locking, socket I/O, logging, or process launch.
@@ -86,7 +92,20 @@ All integers are little-endian. Each frame starts with a 16-byte header:
 | 12 | 4 | sequence number |
 
 The plug-in sends `HELLO`, then `AUTH`, before any `AUDIO_INPUT`. `AUTH` contains a
-printable ASCII API key of at most 512 bytes. Other message types are `AUDIO_OUTPUT` and
-`STATUS`; audio payloads are interleaved IEEE-754 float32 PCM. The credential handshake
-is unencrypted and therefore the native transport connects only to `127.0.0.1`. Keys are
-never included in logs or state files.
+printable ASCII API key of at most 512 bytes. Other message types are `AUDIO_OUTPUT`,
+`STATUS`, and `ACCOUNT_STATUS`; audio payloads are interleaved IEEE-754 float32 PCM. The
+credential handshake is unencrypted and therefore the native transport connects only to
+`127.0.0.1`. Keys are never included in logs or state files.
+
+`ACCOUNT_STATUS` starts with a 16-byte little-endian payload header:
+
+| Offset | Size | Field |
+| ---: | ---: | --- |
+| 0 | 2 | account-status version (`1`) |
+| 2 | 2 | checked/authenticated/balance/profile flags |
+| 4 | 8 | IEEE-754 float64 balance |
+| 12 | 2 | UTF-8 device-label byte count |
+| 14 | 2 | UTF-8 model-ID byte count |
+
+The two bounded strings follow the header. The balance value is meaningful only when the
+balance-available flag is set.

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import math
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
@@ -11,12 +12,17 @@ import aiohttp
 
 _log = logging.getLogger("convbased-vst-bridge.profile")
 _DEVICE_PROFILE_QUERY = (
-    "query { myDeviceProfile { model_id preferences realtime_enabled } }"
+    "query { myDeviceProfile { model_id preferences realtime_enabled label } }"
 )
+_ACCOUNT_BALANCE_QUERY = "query { me { wallet_balance } }"
 
 
 class DeviceProfileError(RuntimeError):
     """A credential-safe device-profile resolution failure."""
+
+
+class AccountBalanceError(RuntimeError):
+    """A credential-safe account-balance resolution failure."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,6 +30,7 @@ class DeviceProfile:
     model_id: str | None
     preferences: dict[str, Any]
     realtime_enabled: bool
+    label: str | None = None
 
     @property
     def runnable(self) -> bool:
@@ -66,7 +73,9 @@ def parse_device_profile_response(payload: Any) -> DeviceProfile | None:
         raise DeviceProfileError("device profile has an invalid shape")
 
     raw_model_id = raw_profile.get("model_id")
-    model_id = raw_model_id.strip() if isinstance(raw_model_id, str) else None
+    model_id = raw_model_id.strip()[:128] if isinstance(raw_model_id, str) else None
+    raw_label = raw_profile.get("label")
+    label = " ".join(raw_label.split())[:128] if isinstance(raw_label, str) else None
     preferences = raw_profile.get("preferences")
     if preferences is None:
         preferences = {}
@@ -78,7 +87,36 @@ def parse_device_profile_response(payload: Any) -> DeviceProfile | None:
         preferences=dict(preferences),
         # Profiles created before this switch existed remain enabled.
         realtime_enabled=raw_profile.get("realtime_enabled") is not False,
+        label=label or None,
     )
+
+
+def parse_account_balance_response(payload: Any) -> float:
+    if not isinstance(payload, dict):
+        raise AccountBalanceError("account balance response is not a JSON object")
+    errors = payload.get("errors")
+    if isinstance(errors, list) and errors:
+        summaries: list[str] = []
+        for error in errors[:3]:
+            extensions = error.get("extensions") if isinstance(error, dict) else None
+            code = extensions.get("code") if isinstance(extensions, dict) else None
+            field = extensions.get("field") if isinstance(extensions, dict) else None
+            summary = str(code or "ERROR")
+            if field:
+                summary += f" field={field}"
+            summaries.append(summary)
+        raise AccountBalanceError(
+            f"account balance query rejected ({'; '.join(summaries)})"
+        )
+    data = payload.get("data")
+    me = data.get("me") if isinstance(data, dict) else None
+    raw_balance = me.get("wallet_balance") if isinstance(me, dict) else None
+    if isinstance(raw_balance, bool) or not isinstance(raw_balance, (int, float)):
+        raise AccountBalanceError("account balance response is missing wallet_balance")
+    balance = float(raw_balance)
+    if not math.isfinite(balance):
+        raise AccountBalanceError("account balance response is not finite")
+    return balance
 
 
 async def fetch_device_profile(
@@ -101,10 +139,36 @@ async def fetch_device_profile(
         ):
             response.raise_for_status()
             payload = await response.json()
-    except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
+    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as exc:
         raise DeviceProfileError("device profile request failed") from exc
 
     return parse_device_profile_response(payload)
+
+
+async def fetch_account_balance(
+    *, graphql_url: str, api_key: str, timeout: float = 5.0
+) -> float:
+    if not graphql_url:
+        raise ValueError("graphql_url is required")
+    if not api_key:
+        raise ValueError("api_key is required")
+
+    client_timeout = aiohttp.ClientTimeout(total=timeout)
+    try:
+        async with (
+            aiohttp.ClientSession(timeout=client_timeout) as session,
+            session.post(
+                graphql_url,
+                json={"query": _ACCOUNT_BALANCE_QUERY},
+                headers={"content-type": "application/json", "x-api-key": api_key},
+            ) as response,
+        ):
+            response.raise_for_status()
+            payload = await response.json()
+    except (aiohttp.ClientError, asyncio.TimeoutError, ValueError) as exc:
+        raise AccountBalanceError("account balance request failed") from exc
+
+    return parse_account_balance_response(payload)
 
 
 ProfileFetcher = Callable[..., Awaitable[DeviceProfile | None]]

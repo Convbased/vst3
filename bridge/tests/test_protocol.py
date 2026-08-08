@@ -3,13 +3,16 @@ from __future__ import annotations
 import unittest
 
 from convbased_vst_bridge.protocol import (
+    AccountStatus,
     Hello,
     MessageType,
     ProtocolError,
     decode_auth,
+    decode_account_status,
     decode_frame,
     decode_hello,
     encode_hello,
+    encode_account_status,
     encode_message,
 )
 
@@ -28,6 +31,20 @@ class ProtocolTests(unittest.TestCase):
 
     def test_auth_payload_is_decoded_without_logging_or_shape_changes(self) -> None:
         self.assertEqual(decode_auth(b"sk_test-123"), "sk_test-123")
+
+    def test_account_status_round_trip(self) -> None:
+        status = AccountStatus(
+            account_checked=True,
+            authenticated=True,
+            balance_checked=True,
+            balance_available=True,
+            realtime_enabled=True,
+            model_configured=True,
+            balance=16.25,
+            label="录音间",
+            model_id="model-1",
+        )
+        self.assertEqual(decode_account_status(encode_account_status(status)), status)
 
     def test_auth_payload_rejects_whitespace_and_non_ascii(self) -> None:
         for payload in (b"", b"test key", "密钥".encode()):

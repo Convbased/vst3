@@ -87,6 +87,19 @@ void testProtocolRoundTrip() {
                 outputHello.channels == inputHello.channels &&
                 outputHello.maxBlockFrames == inputHello.maxBlockFrames,
             "HELLO changed during round trip");
+
+    const convbased::bridge::protocol::AccountStatus inputStatus {
+        true, true, true, true, true, true, 42.75, "Studio", "model-1"};
+    const auto wireStatus = convbased::bridge::protocol::encodeAccountStatus(inputStatus);
+    convbased::bridge::protocol::AccountStatus outputStatus;
+    require(!wireStatus.empty() &&
+                convbased::bridge::protocol::decodeAccountStatus(wireStatus, outputStatus),
+            "account status did not decode");
+    require(outputStatus.authenticated && outputStatus.balanceAvailable &&
+                outputStatus.balance == inputStatus.balance &&
+                outputStatus.label == inputStatus.label &&
+                outputStatus.modelId == inputStatus.modelId,
+            "account status changed during round trip");
 }
 
 void testRoutingBlocksOriginalUnlessBypassed() {
@@ -196,6 +209,14 @@ void testLoopbackTransport() {
             require(header.payloadBytes == payload.size() && receiveExact(client, payload),
                     "test server did not receive expected audio payload");
 
+            const auto accountPayload = convbased::bridge::protocol::encodeAccountStatus(
+                {true, true, true, true, true, true, 18.5, "Test device", "model-test"});
+            const auto accountHeader = convbased::bridge::protocol::encodeHeader(
+                {MessageType::accountStatus,
+                 static_cast<std::uint32_t>(accountPayload.size()), header.sequence});
+            require(sendExact(client, accountHeader) && sendExact(client, accountPayload),
+                    "test server could not send account status");
+
             for (std::uint32_t response = 0; response < 12; ++response) {
                 const auto responseHeader = convbased::bridge::protocol::encodeHeader(
                     {MessageType::audioOutput, header.payloadBytes, header.sequence + response});
@@ -264,6 +285,11 @@ void testLoopbackTransport() {
     require(receivedBlocks == 12, "bridge discarded a recoverable converted-audio burst");
     require(bridge->droppedOutputSamples() == 0,
             "bridge counted a recoverable converted-audio burst as stale");
+    const auto account = bridge->accountStatusSnapshot();
+    require(account.status.authenticated && account.status.balanceAvailable &&
+                account.status.balance == 18.5 && account.status.label == "Test device" &&
+                account.status.modelId == "model-test",
+            "bridge did not retain the bridge-service account status");
 
     bridge->clearApiKey();
     const auto clearDeadline = std::chrono::steady_clock::now() + 2s;

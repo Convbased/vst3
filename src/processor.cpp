@@ -9,6 +9,7 @@
 #include "pluginterfaces/base/ibstream.h"
 #include "pluginterfaces/vst/ivstmessage.h"
 #include "pluginterfaces/vst/ivstparameterchanges.h"
+#include "public.sdk/source/vst/hosting/hostclasses.h"
 
 #include <algorithm>
 #include <cmath>
@@ -234,6 +235,31 @@ Steinberg::tresult PLUGIN_API Processor::notify(Steinberg::Vst::IMessage* messag
     if (std::strcmp(messageId, messages::kClearApiKeyMessageId) == 0) {
         bridge_.clearApiKey();
         return Steinberg::kResultTrue;
+    }
+    if (std::strcmp(messageId, messages::kAccountStatusRequestMessageId) == 0) {
+        const auto snapshot = bridge_.accountStatusSnapshot();
+        const auto payload = bridge::protocol::encodeAccountStatus(snapshot.status);
+        if (payload.empty()) {
+            return Steinberg::kResultFalse;
+        }
+        Steinberg::IPtr<Steinberg::Vst::IMessage> response =
+            Steinberg::owned(allocateMessage());
+        if (response == nullptr) {
+            response = Steinberg::owned(new Steinberg::Vst::HostMessage());
+        }
+        response->setMessageID(messages::kAccountStatusMessageId);
+        auto* responseAttributes = response->getAttributes();
+        if (responseAttributes == nullptr ||
+            responseAttributes->setBinary(
+                messages::kAccountStatusAttribute, payload.data(),
+                static_cast<Steinberg::uint32>(payload.size())) != Steinberg::kResultTrue ||
+            responseAttributes->setInt(
+                messages::kAccountStatusGenerationAttribute,
+                static_cast<Steinberg::int64>(snapshot.generation)) !=
+                Steinberg::kResultTrue) {
+            return Steinberg::kResultFalse;
+        }
+        return sendMessage(response);
     }
     if (std::strcmp(messageId, messages::kApiKeyMessageId) != 0) {
         return AudioEffect::notify(message);

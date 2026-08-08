@@ -79,7 +79,9 @@ using protocol::MessageType;
 [[nodiscard]] bool receiveFrames(
     SOCKET socketHandle, std::vector<std::byte>& receiveBuffer,
     SpscFloatRingBuffer<LoopbackBridge::kRingCapacitySamples>& output,
-    std::atomic<std::uint64_t>& droppedOutputSamples, std::uint16_t channels) noexcept {
+    std::atomic<std::uint64_t>& droppedOutputSamples, std::uint16_t channels,
+    std::mutex& accountStatusMutex, protocol::AccountStatus& accountStatus,
+    std::uint64_t& accountStatusGeneration) noexcept {
     std::array<std::byte, 32U * 1024U> chunk {};
     const auto received = ::recv(socketHandle, reinterpret_cast<char*>(chunk.data()),
                                  static_cast<int>(chunk.size()), 0);
@@ -122,6 +124,18 @@ using protocol::MessageType;
             if (!output.push(std::span<const float>(samples.data(), sampleCount))) {
                 droppedOutputSamples.fetch_add(sampleCount, std::memory_order_relaxed);
             }
+        } else if (header.type == MessageType::accountStatus) {
+            try {
+                protocol::AccountStatus decoded;
+                if (!protocol::decodeAccountStatus(payload, decoded)) {
+                    return false;
+                }
+                std::scoped_lock lock(accountStatusMutex);
+                accountStatus = std::move(decoded);
+                ++accountStatusGeneration;
+            } catch (...) {
+                return false;
+            }
         }
         consumed += frameBytes;
     }
@@ -162,6 +176,7 @@ bool LoopbackBridge::start(const BridgeConfig& config) {
     droppedInputSamples_.store(0, std::memory_order_relaxed);
     droppedOutputSamples_.store(0, std::memory_order_relaxed);
     outputPrimed_.store(false, std::memory_order_relaxed);
+    resetAccountStatus();
     state_.store(BridgeState::connecting, std::memory_order_release);
     running_.store(true, std::memory_order_release);
     try {
@@ -195,6 +210,7 @@ bool LoopbackBridge::setApiKey(std::string apiKey) {
         apiKey_ = std::move(apiKey);
         credentialGeneration_.fetch_add(1, std::memory_order_release);
     }
+    resetAccountStatus();
     credentialChanged_.notify_all();
     return true;
 }
@@ -208,6 +224,7 @@ void LoopbackBridge::clearApiKey() noexcept {
     }
     input_.discardAvailable();
     discardOutput();
+    resetAccountStatus();
     credentialChanged_.notify_all();
 }
 
@@ -273,6 +290,11 @@ std::size_t LoopbackBridge::queuedOutputSamples() const noexcept {
     return output_.availableToRead();
 }
 
+AccountStatusSnapshot LoopbackBridge::accountStatusSnapshot() const {
+    std::scoped_lock lock(accountStatusMutex_);
+    return {accountStatusGeneration_, accountStatus_};
+}
+
 std::size_t LoopbackBridge::maxInputQueuedSamples() const noexcept {
     const auto frames = std::max<std::size_t>(
         1, static_cast<std::size_t>(config_.sampleRate) * kMaxInputQueuedMilliseconds /
@@ -291,6 +313,12 @@ std::size_t LoopbackBridge::outputPrimeSamples() const noexcept {
     const auto frames = std::max<std::size_t>(
         1, static_cast<std::size_t>(config_.sampleRate) * kOutputPrimeMilliseconds / 1'000U);
     return frames * config_.channels;
+}
+
+void LoopbackBridge::resetAccountStatus() {
+    std::scoped_lock lock(accountStatusMutex_);
+    accountStatus_ = {};
+    ++accountStatusGeneration_;
 }
 
 std::uint16_t LoopbackBridge::portFromEnvironment() noexcept {
@@ -400,7 +428,9 @@ void LoopbackBridge::run() noexcept {
 
             if (connectionAlive) {
                 connectionAlive = receiveFrames(socketHandle, receiveBuffer, output_,
-                                                droppedOutputSamples_, config_.channels);
+                                                droppedOutputSamples_, config_.channels,
+                                                accountStatusMutex_, accountStatus_,
+                                                accountStatusGeneration_);
             }
             if (!sentAudio && connectionAlive) {
                 std::this_thread::sleep_for(1ms);

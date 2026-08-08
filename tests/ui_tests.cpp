@@ -26,6 +26,8 @@ constexpr std::int32_t kApplyApiKeyTag = 1'000;
 constexpr std::int32_t kApiKeyInputTag = 1'001;
 constexpr std::int32_t kApiKeyStatusTag = 1'002;
 constexpr std::int32_t kClearApiKeyTag = 1'003;
+constexpr std::int32_t kBalanceStatusTag = 1'004;
+constexpr std::int32_t kProfileStatusTag = 1'005;
 
 void require(bool condition, std::string_view message) {
     if (!condition) {
@@ -60,6 +62,8 @@ struct EditorControls final {
     bool apiKeyInputSecure {false};
     bool apiKeyStatus {false};
     bool clearApiKey {false};
+    bool balanceStatus {false};
+    bool profileStatus {false};
 };
 
 void inspectView(VSTGUI::CView* view, EditorControls& controls) {
@@ -86,6 +90,12 @@ void inspectView(VSTGUI::CView* view, EditorControls& controls) {
                 break;
             case kClearApiKeyTag:
                 controls.clearApiKey = dynamic_cast<VSTGUI::CTextButton*>(control) != nullptr;
+                break;
+            case kBalanceStatusTag:
+                controls.balanceStatus = dynamic_cast<VSTGUI::CTextLabel*>(control) != nullptr;
+                break;
+            case kProfileStatusTag:
+                controls.profileStatus = dynamic_cast<VSTGUI::CTextLabel*>(control) != nullptr;
                 break;
             default:
                 break;
@@ -127,6 +137,8 @@ void testEditorDescription() {
     require(controls.apiKeyInputSecure, "API key field is not masked");
     require(controls.apiKeyStatus, "editor is missing API key status text");
     require(controls.clearApiKey, "editor is missing the clear-key action");
+    require(controls.balanceStatus, "editor is missing the account-balance status");
+    require(controls.profileStatus, "editor is missing the device-profile status");
     require(contents.find("Convbased 实时变声") != std::string::npos,
             "editor title is not localized to Chinese");
     require(contents.find("保存并连接") != std::string::npos,
