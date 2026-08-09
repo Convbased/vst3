@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <vstgui-ui-description version="1">
     <colors>
-        <color name="Canvas" rgba="#17191dff"/>
-        <color name="Panel" rgba="#22262cff"/>
-        <color name="Field" rgba="#111317ff"/>
-        <color name="Border" rgba="#4a515cff"/>
-        <color name="Text" rgba="#f4f5f7ff"/>
-        <color name="Muted" rgba="#a8afb9ff"/>
-        <color name="Accent" rgba="#36c58dff"/>
-        <color name="Accent Pressed" rgba="#269a6dff"/>
+        <color name="Canvas" rgba="#1d1f21ff"/>
+        <color name="Panel" rgba="#2c2e30ff"/>
+        <color name="Field" rgba="#1d1f21ff"/>
+        <color name="Border" rgba="#444648ff"/>
+        <color name="Text" rgba="#ffffffff"/>
+        <color name="Text Secondary" rgba="#e0e0e0ff"/>
+        <color name="Muted" rgba="#a3a3a3ff"/>
+        <color name="Quiet" rgba="#858585ff"/>
+        <color name="Accent" rgba="#ff6600ff"/>
+        <color name="Accent Soft" rgba="#ff983fff"/>
+        <color name="Accent Pressed" rgba="#f26100ff"/>
     </colors>
     <control-tags>
         <control-tag name="UI::ApplyApiKey" tag="1000"/>
@@ -19,13 +22,25 @@
         <control-tag name="UI::ProfileStatus" tag="1005"/>
     </control-tags>
     <gradients>
-        <gradient name="Apply Button">
-            <color-stop rgba="#36c58dff" start="0"/>
-            <color-stop rgba="#2eb57fff" start="1"/>
+        <gradient name="Panel Surface">
+            <color-stop rgba="#2c2e30ff" start="0"/>
+            <color-stop rgba="#2c2e30ff" start="1"/>
         </gradient>
-        <gradient name="Apply Button Pressed">
-            <color-stop rgba="#269a6dff" start="0"/>
-            <color-stop rgba="#20855eff" start="1"/>
+        <gradient name="Primary Button">
+            <color-stop rgba="#ff6600ff" start="0"/>
+            <color-stop rgba="#ff983fff" start="1"/>
+        </gradient>
+        <gradient name="Primary Button Pressed">
+            <color-stop rgba="#f26100ff" start="0"/>
+            <color-stop rgba="#f2913cff" start="1"/>
+        </gradient>
+        <gradient name="Secondary Button">
+            <color-stop rgba="#444648ff" start="0"/>
+            <color-stop rgba="#3b3d3fff" start="1"/>
+        </gradient>
+        <gradient name="Secondary Button Pressed">
+            <color-stop rgba="#2c2e30ff" start="0"/>
+            <color-stop rgba="#1d1f21ff" start="1"/>
         </gradient>
     </gradients>
     <template background-color="Canvas" background-color-draw-style="filled"
@@ -33,90 +48,129 @@
               mouse-enabled="true" name="view" opacity="1" origin="0, 0"
               size="560, 344" transparent="false" wants-focus="false">
         <view back-color="Canvas" class="CTextLabel" font="~ NormalFontVeryBig"
+              font-antialias="true" font-color="Accent" frame-color="Canvas"
+              frame-width="0" mouse-enabled="false" opacity="1" origin="20, 12"
+              size="96, 28" style-no-frame="true" text-alignment="left"
+              text-inset="0, 0" title="Convbased" transparent="true"/>
+        <view back-color="Canvas" class="CTextLabel" font="~ NormalFontVeryBig"
               font-antialias="true" font-color="Text" frame-color="Canvas"
-              frame-width="0" mouse-enabled="false" opacity="1" origin="24, 18"
-              size="512, 28" style-no-frame="true" text-alignment="left"
-              text-inset="0, 0" title="Convbased 实时变声" transparent="true"/>
+              frame-width="0" mouse-enabled="false" opacity="1" origin="118, 12"
+              size="180, 28" style-no-frame="true" text-alignment="left"
+              text-inset="0, 0" title="实时变声" transparent="true"/>
+        <view back-color="Canvas" class="CTextLabel" font="~ NormalFontSmaller"
+              font-antialias="true" font-color="Quiet" frame-color="Canvas"
+              frame-width="0" mouse-enabled="false" opacity="1" origin="420, 18"
+              size="120, 16" style-no-frame="true" text-alignment="right"
+              text-inset="0, 0" title="VST3 BRIDGE" transparent="true"/>
         <view back-color="Canvas" class="CTextLabel" font="~ NormalFontSmall"
               font-antialias="true" font-color="Muted" frame-color="Canvas"
-              frame-width="0" mouse-enabled="false" opacity="1" origin="24, 47"
-              size="512, 18" style-no-frame="true" text-alignment="left"
+              frame-width="0" mouse-enabled="false" opacity="1" origin="20, 44"
+              size="520, 18" style-no-frame="true" text-alignment="left"
               text-inset="0, 0" title="经本地桥接服务连接 Convbased"
               transparent="true"/>
 
-        <view background-color="Panel" background-color-draw-style="filled"
-              class="CViewContainer" mouse-enabled="true" opacity="1" origin="24, 78"
-              size="512, 126" sub-controller="ApiKeyController" transparent="false">
+        <view class="CGradientView" draw-antialiased="true" frame-color="Border"
+              frame-width="1" gradient="Panel Surface" gradient-angle="90"
+              gradient-style="linear" mouse-enabled="false" opacity="1"
+              origin="20, 72" radial-center="0.5, 0.5" radial-radius="1"
+              round-rect-radius="8" size="520, 136" transparent="false"/>
+        <view background-color="Panel" class="CViewContainer" mouse-enabled="true"
+              opacity="1" origin="20, 72" size="520, 136"
+              sub-controller="ApiKeyController" transparent="true">
             <view back-color="Panel" class="CTextLabel" font="~ NormalFont"
-                  font-antialias="true" font-color="Text" frame-color="Panel"
+                  font-antialias="true" font-color="Text Secondary" frame-color="Panel"
                   frame-width="0" mouse-enabled="false" opacity="1" origin="16, 12"
-                  size="480, 20" style-no-frame="true" text-alignment="left"
-                  text-inset="0, 0" title="API Key 密钥" transparent="true"/>
+                  size="240, 20" style-no-frame="true" text-alignment="left"
+                  text-inset="0, 0" title="API Key" transparent="true"/>
+            <view back-color="Panel" class="CTextLabel" font="~ NormalFontSmaller"
+                  font-antialias="true" font-color="Quiet" frame-color="Panel"
+                  frame-width="0" mouse-enabled="false" opacity="1" origin="360, 14"
+                  size="144, 16" style-no-frame="true" text-alignment="right"
+                  text-inset="0, 0" title="Windows 本机加密" transparent="true"/>
             <view back-color="Field" class="CTextEdit" control-tag="UI::ApiKeyInput"
                   default-value="0" font="~ NormalFont" font-antialias="true"
                   font-color="Text" frame-color="Border" frame-width="1"
                   immediate-text-change="true" max-value="1" min-value="0"
-                  mouse-enabled="true" opacity="1" origin="16, 39"
-                  placeholder-title="粘贴 CONVBASED_API_KEY" round-rect-radius="4"
-                  secure-style="true" size="274, 34" style-no-frame="false"
-                  style-round-rect="true" text-alignment="left" text-inset="10, 0"
+                  mouse-enabled="true" opacity="1" origin="16, 40"
+                  placeholder-title="粘贴 CONVBASED_API_KEY" round-rect-radius="8"
+                  secure-style="true" size="278, 36" style-no-frame="false"
+                  style-round-rect="true" text-alignment="left" text-inset="12, 0"
                   title="" transparent="false" wants-focus="true"/>
             <view class="CTextButton" control-tag="UI::ApplyApiKey" default-value="0"
-                  font="~ NormalFont" frame-color="Accent" frame-color-highlighted="Accent Pressed"
-                  frame-width="0" gradient="Apply Button"
-                  gradient-highlighted="Apply Button Pressed" kick-style="true"
-                  max-value="1" min-value="0" mouse-enabled="true" opacity="1"
-                  origin="302, 39" round-radius="4" size="102, 34"
-                  text-alignment="center" text-color="#07130eff"
+                  font="~ NormalFont" frame-color="Accent"
+                  frame-color-highlighted="Accent Pressed" frame-width="0"
+                  gradient="Primary Button" gradient-highlighted="Primary Button Pressed"
+                  kick-style="true" max-value="1" min-value="0" mouse-enabled="true"
+                  opacity="1" origin="304, 40" round-radius="8" size="110, 36"
+                  text-alignment="center" text-color="Text"
                   text-color-highlighted="Text" title="保存并连接" transparent="false"
                   wants-focus="true"/>
             <view class="CTextButton" control-tag="UI::ClearApiKey" default-value="0"
-                  font="~ NormalFont" frame-color="Border" frame-width="1"
-                  kick-style="true" max-value="1" min-value="0" mouse-enabled="true"
-                  opacity="1" origin="416, 39" round-radius="4" size="80, 34"
-                  text-alignment="center" text-color="Muted"
-                  text-color-highlighted="Text" title="清除" transparent="true"
+                  font="~ NormalFont" frame-color="Border"
+                  frame-color-highlighted="Border" frame-width="1"
+                  gradient="Secondary Button"
+                  gradient-highlighted="Secondary Button Pressed" kick-style="true"
+                  max-value="1" min-value="0" mouse-enabled="true" opacity="1"
+                  origin="424, 40" round-radius="8" size="80, 36"
+                  text-alignment="center" text-color="Text Secondary"
+                  text-color-highlighted="Text" title="清除" transparent="false"
                   wants-focus="true"/>
             <view back-color="Panel" class="CTextLabel" control-tag="UI::ApiKeyStatus"
                   default-value="0" font="~ NormalFontSmall" font-antialias="true"
-                  font-color="Muted" frame-color="Panel" frame-width="0"
+                  font-color="Text Secondary" frame-color="Panel" frame-width="0"
                   max-value="1" min-value="0" mouse-enabled="false" opacity="1"
-                  origin="16, 82" size="480, 18" style-no-frame="true"
+                  origin="16, 84" size="488, 18" style-no-frame="true"
                   text-alignment="left" text-inset="0, 0"
-                  title="尚未应用密钥，转换音频当前为静音。"
+                  title="尚未保存密钥，转换音频当前为静音。"
                   transparent="true"/>
             <view back-color="Panel" class="CTextLabel" font="~ NormalFontSmaller"
-                  font-antialias="true" font-color="Muted" frame-color="Panel"
-                  frame-width="0" mouse-enabled="false" opacity="1" origin="16, 101"
-                  size="480, 16" style-no-frame="true" text-alignment="left"
-                  text-inset="0, 0" title="密钥由 Windows 加密保存在本机，不会写入 DAW 工程。"
+                  font-antialias="true" font-color="Quiet" frame-color="Panel"
+                  frame-width="0" mouse-enabled="false" opacity="1" origin="16, 106"
+                  size="488, 16" style-no-frame="true" text-alignment="left"
+                  text-inset="0, 0" title="密钥使用 Windows DPAPI 加密，仅保存在当前用户设备。"
                   transparent="true"/>
         </view>
-        <view background-color="Panel" background-color-draw-style="filled"
-              class="CViewContainer" mouse-enabled="false" opacity="1" origin="24, 216"
-              size="512, 92" transparent="false">
+
+        <view class="CGradientView" draw-antialiased="true" frame-color="Border"
+              frame-width="1" gradient="Panel Surface" gradient-angle="90"
+              gradient-style="linear" mouse-enabled="false" opacity="1"
+              origin="20, 220" radial-center="0.5, 0.5" radial-radius="1"
+              round-rect-radius="8" size="520, 88" transparent="false"/>
+        <view background-color="Panel" class="CViewContainer" mouse-enabled="false"
+              opacity="1" origin="20, 220" size="520, 88" transparent="true">
             <view back-color="Panel" class="CTextLabel" font="~ NormalFont"
-                  font-antialias="true" font-color="Text" frame-color="Panel"
-                  frame-width="0" mouse-enabled="false" opacity="1" origin="16, 10"
-                  size="480, 20" style-no-frame="true" text-alignment="left"
+                  font-antialias="true" font-color="Text Secondary" frame-color="Panel"
+                  frame-width="0" mouse-enabled="false" opacity="1" origin="16, 11"
+                  size="240, 20" style-no-frame="true" text-alignment="left"
                   text-inset="0, 0" title="账户与设备" transparent="true"/>
+            <view back-color="Panel" class="CTextLabel" font="~ NormalFontSmaller"
+                  font-antialias="true" font-color="Quiet" frame-color="Panel"
+                  frame-width="0" mouse-enabled="false" opacity="1" origin="288, 13"
+                  size="216, 16" style-no-frame="true" text-alignment="right"
+                  text-inset="0, 0" title="由 Web 控制台配置" transparent="true"/>
             <view back-color="Panel" class="CTextLabel" control-tag="UI::BalanceStatus"
-                  font="~ NormalFontSmall" font-antialias="true" font-color="Muted"
-                  frame-color="Panel" frame-width="0" mouse-enabled="false" opacity="1"
-                  origin="16, 37" size="480, 18" style-no-frame="true"
-                  text-alignment="left" text-inset="0, 0" title="可用余额：--"
-                  transparent="true"/>
+                  font="~ NormalFontSmall" font-antialias="true"
+                  font-color="Muted" frame-color="Panel" frame-width="0"
+                  mouse-enabled="false" opacity="1" origin="16, 36" size="488, 18"
+                  style-no-frame="true" text-alignment="left" text-inset="0, 0"
+                  title="可用余额：--" transparent="true"/>
             <view back-color="Panel" class="CTextLabel" control-tag="UI::ProfileStatus"
-                  font="~ NormalFontSmall" font-antialias="true" font-color="Muted"
-                  frame-color="Panel" frame-width="0" mouse-enabled="false" opacity="1"
-                  origin="16, 62" size="480, 18" style-no-frame="true"
-                  text-alignment="left" text-inset="0, 0" title="设备配置：未连接"
-                  transparent="true"/>
+                  font="~ NormalFontSmall" font-antialias="true"
+                  font-color="Muted" frame-color="Panel" frame-width="0"
+                  mouse-enabled="false" opacity="1" origin="16, 59" size="488, 18"
+                  style-no-frame="true" text-alignment="left" text-inset="0, 0"
+                  title="设备配置：未连接" transparent="true"/>
         </view>
+
+        <view class="CGradientView" draw-antialiased="true" frame-color="Accent"
+              frame-width="0" gradient="Primary Button" gradient-angle="90"
+              gradient-style="linear" mouse-enabled="false" opacity="1"
+              origin="20, 323" radial-center="0.5, 0.5" radial-radius="1"
+              round-rect-radius="3" size="6, 6" transparent="false"/>
         <view back-color="Canvas" class="CTextLabel" font="~ NormalFontSmaller"
-              font-antialias="true" font-color="Muted" frame-color="Canvas"
-              frame-width="0" mouse-enabled="false" opacity="1" origin="24, 318"
-              size="512, 16" style-no-frame="true" text-alignment="left"
+              font-antialias="true" font-color="Quiet" frame-color="Canvas"
+              frame-width="0" mouse-enabled="false" opacity="1" origin="34, 318"
+              size="506, 16" style-no-frame="true" text-alignment="left"
               text-inset="0, 0" title="请先启动本地桥接服务，转换音频会自动返回当前轨道。"
               transparent="true"/>
     </template>
