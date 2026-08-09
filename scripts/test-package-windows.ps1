@@ -61,6 +61,28 @@ try {
     }
     $packageRoot = $packageRoots[0].FullName
 
+    $packageReadmePath = Join-Path $packageRoot 'README.md'
+    if (-not (Test-Path -LiteralPath $packageReadmePath)) {
+        throw 'The package README is missing.'
+    }
+    $packageReadme = Get-Content -LiteralPath $packageReadmePath -Raw
+    if ($packageReadme -match '\{\{(?:VERSION|COMMIT)\}\}') {
+        throw 'The package README contains unresolved template fields.'
+    }
+    if (
+        $packageReadme -notmatch 'Windows DPAPI' -or
+        $packageReadme -notmatch 'Converted output stays silent' -or
+        $packageReadme -notmatch 'encrypted local key automatically'
+    ) {
+        throw 'The package README does not describe the current credential and audio behavior.'
+    }
+    if (
+        $packageReadme -match 'falls back to dry audio' -or
+        $packageReadme -match 'held only in the current plug-in'
+    ) {
+        throw 'The package README still contains obsolete runtime behavior.'
+    }
+
     $internalChecksumPath = Join-Path $packageRoot 'SHA256SUMS.txt'
     foreach ($line in Get-Content -LiteralPath $internalChecksumPath) {
         if ($line -notmatch '^([0-9a-fA-F]{64})  (.+)$') {
