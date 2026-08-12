@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "convbased-vst-bridge"
+version = "0.1.0"
+description = "Loopback PCM bridge between Convbased Bridge VST3 and the Convbased Python SDK"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{ name = "Convbased" }]
+dependencies = [
+    "aiohttp>=3.9,<4",
+    "aiortc>=1.6,<2",
+    "av>=12,<17",
+    # The current Convbased SDK uses the legacy WebSocketClientProtocol API.
+    "websockets>=12,<14",
+]
+
+[project.optional-dependencies]
+release = ["pyinstaller>=6.11,<7"]
+
+[project.scripts]
+convbased-vst-bridge = "convbased_vst_bridge.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

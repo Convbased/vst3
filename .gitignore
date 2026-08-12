@@ -1,0 +1,25 @@
+# CMake / Visual Studio
+/build/
+/out/
+/.vs/
+CMakeUserPresets.json
+*.user
+
+# Python sidecar
+/.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Packaged plug-ins and local configuration
+*.vst3
+*.env
+.env
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,25 @@
+from __future__ import annotations
+
+import unittest
+
+from convbased_vst_bridge.cli import build_parser, options_from_args
+
+
+class CliTests(unittest.TestCase):
+    def test_sidecar_starts_without_environment_credentials(self) -> None:
+        parser = build_parser()
+        options = options_from_args(parser.parse_args([]), parser)
+
+        self.assertEqual(options.host, "127.0.0.1")
+        self.assertEqual(options.port, 43_127)
+        self.assertFalse(hasattr(options, "api_key"))
+        self.assertFalse(hasattr(options, "model_id"))
+
+    def test_invalid_port_is_rejected(self) -> None:
+        parser = build_parser()
+        with self.assertRaises(SystemExit):
+            options_from_args(parser.parse_args(["--port", "0"]), parser)
+
+
+if __name__ == "__main__":
+    unittest.main()

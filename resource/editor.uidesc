@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vstgui-ui-description version="1">
+    <colors>
+        <color name="Canvas" rgba="#17191dff"/>
+        <color name="Panel" rgba="#22262cff"/>
+        <color name="Field" rgba="#111317ff"/>
+        <color name="Border" rgba="#4a515cff"/>
+        <color name="Text" rgba="#f4f5f7ff"/>
+        <color name="Muted" rgba="#a8afb9ff"/>
+        <color name="Accent" rgba="#36c58dff"/>
+        <color name="Accent Pressed" rgba="#269a6dff"/>
+    </colors>
+    <control-tags>
+        <control-tag name="Mix" tag="100"/>
+        <control-tag name="Bypass" tag="101"/>
+        <control-tag name="UI::ApplyApiKey" tag="1000"/>
+        <control-tag name="UI::ApiKeyInput" tag="1001"/>
+        <control-tag name="UI::ApiKeyStatus" tag="1002"/>
+    </control-tags>
+    <gradients>
+        <gradient name="Apply Button">
+            <color-stop rgba="#36c58dff" start="0"/>
+            <color-stop rgba="#2eb57fff" start="1"/>
+        </gradient>
+        <gradient name="Apply Button Pressed">
+            <color-stop rgba="#269a6dff" start="0"/>
+            <color-stop rgba="#20855eff" start="1"/>
+        </gradient>
+    </gradients>
+    <template background-color="Canvas" background-color-draw-style="filled"
+              class="CViewContainer" maxSize="560, 300" minSize="560, 300"
+              mouse-enabled="true" name="view" opacity="1" origin="0, 0"
+              size="560, 300" transparent="false" wants-focus="false">
+        <view back-color="Canvas" class="CTextLabel" font="~ NormalFontVeryBig"
+              font-antialias="true" font-color="Text" frame-color="Canvas"
+              frame-width="0" mouse-enabled="false" opacity="1" origin="24, 18"
+              size="512, 28" style-no-frame="true" text-alignment="left"
+              text-inset="0, 0" title="Convbased Bridge" transparent="true"/>
+        <view back-color="Canvas" class="CTextLabel" font="~ NormalFontSmall"
+              font-antialias="true" font-color="Muted" frame-color="Canvas"
+              frame-width="0" mouse-enabled="false" opacity="1" origin="24, 47"
+              size="512, 18" style-no-frame="true" text-alignment="left"
+              text-inset="0, 0" title="DAW audio to Convbased through a local sidecar"
+              transparent="true"/>
+
+        <view background-color="Panel" background-color-draw-style="filled"
+              class="CViewContainer" mouse-enabled="true" opacity="1" origin="24, 78"
+              size="512, 126" sub-controller="ApiKeyController" transparent="false">
+            <view back-color="Panel" class="CTextLabel" font="~ NormalFont"
+                  font-antialias="true" font-color="Text" frame-color="Panel"
+                  frame-width="0" mouse-enabled="false" opacity="1" origin="16, 12"
+                  size="480, 20" style-no-frame="true" text-alignment="left"
+                  text-inset="0, 0" title="API Key" transparent="true"/>
+            <view back-color="Field" class="CTextEdit" control-tag="UI::ApiKeyInput"
+                  default-value="0" font="~ NormalFont" font-antialias="true"
+                  font-color="Text" frame-color="Border" frame-width="1"
+                  immediate-text-change="false" max-value="1" min-value="0"
+                  mouse-enabled="true" opacity="1" origin="16, 39"
+                  placeholder-title="Paste CONVBASED_API_KEY" round-rect-radius="4"
+                  secure-style="true" size="350, 34" style-no-frame="false"
+                  style-round-rect="true" text-alignment="left" text-inset="10, 0"
+                  title="" transparent="false" wants-focus="true"/>
+            <view class="CTextButton" control-tag="UI::ApplyApiKey" default-value="0"
+                  font="~ NormalFont" frame-color="Accent" frame-color-highlighted="Accent Pressed"
+                  frame-width="0" gradient="Apply Button"
+                  gradient-highlighted="Apply Button Pressed" kick-style="true"
+                  max-value="1" min-value="0" mouse-enabled="true" opacity="1"
+                  origin="378, 39" round-radius="4" size="118, 34"
+                  text-alignment="center" text-color="#07130eff"
+                  text-color-highlighted="Text" title="Apply key" transparent="false"
+                  wants-focus="true"/>
+            <view back-color="Panel" class="CTextLabel" control-tag="UI::ApiKeyStatus"
+                  default-value="0" font="~ NormalFontSmall" font-antialias="true"
+                  font-color="Muted" frame-color="Panel" frame-width="0"
+                  max-value="1" min-value="0" mouse-enabled="false" opacity="1"
+                  origin="16, 82" size="480, 18" style-no-frame="true"
+                  text-alignment="left" text-inset="0, 0"
+                  title="Not applied. Audio remains dry until a key is entered."
+                  transparent="true"/>
+            <view back-color="Panel" class="CTextLabel" font="~ NormalFontSmaller"
+                  font-antialias="true" font-color="Muted" frame-color="Panel"
+                  frame-width="0" mouse-enabled="false" opacity="1" origin="16, 101"
+                  size="480, 16" style-no-frame="true" text-alignment="left"
+                  text-inset="0, 0" title="Memory only. The key is not saved in the DAW project."
+                  transparent="true"/>
+        </view>
+
+        <view back-color="Canvas" class="CTextLabel" font="~ NormalFont"
+              font-antialias="true" font-color="Text" frame-color="Canvas"
+              frame-width="0" mouse-enabled="false" opacity="1" origin="24, 224"
+              size="54, 24" style-no-frame="true" text-alignment="left"
+              text-inset="0, 0" title="Mix" transparent="true"/>
+        <view class="CSlider" control-tag="Mix" default-value="1" draw-back="true"
+              draw-back-color="Border" draw-frame="false" draw-value="true"
+              draw-value-color="Accent" draw-value-from-center="false"
+              draw-value-inverted="false" max-value="1" min-value="0"
+              mode="free click" mouse-enabled="true" opacity="1"
+              orientation="horizontal" origin="82, 226" reverse-orientation="false"
+              size="268, 20" transparent="false" transparent-handle="true"
+              wants-focus="true" wheel-inc-value="0.05" zoom-factor="10"/>
+        <view back-color="Field" class="CTextEdit" control-tag="Mix" default-value="1"
+              font="~ NormalFontSmall" font-antialias="true" font-color="Text"
+              frame-color="Border" frame-width="1" immediate-text-change="false"
+              max-value="1" min-value="0" mouse-enabled="true" opacity="1"
+              origin="362, 224" secure-style="false" size="72, 24"
+              style-no-frame="false" text-alignment="center" text-inset="4, 0"
+              title="100" transparent="false" wants-focus="true"/>
+        <view back-color="Canvas" boxfill-color="Field" boxframe-color="Border"
+              checkmark-color="Accent" class="CCheckBox" control-tag="Bypass"
+              default-value="0" draw-crossbox="false" font="~ NormalFontSmall"
+              font-color="Text" frame-width="1" max-value="1" min-value="0"
+              mouse-enabled="true" opacity="1" origin="450, 224" size="86, 24"
+              title="Bypass" transparent="true" wants-focus="true"/>
+
+        <view back-color="Canvas" class="CTextLabel" font="~ NormalFontSmaller"
+              font-antialias="true" font-color="Muted" frame-color="Canvas"
+              frame-width="0" mouse-enabled="false" opacity="1" origin="24, 266"
+              size="512, 16" style-no-frame="true" text-alignment="left"
+              text-inset="0, 0" title="Start the packaged sidecar first. Converted audio returns automatically."
+              transparent="true"/>
+    </template>
+</vstgui-ui-description>

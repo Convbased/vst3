@@ -1,0 +1,26 @@
+"""Convbased real-time voice-conversion SDK (Python).
+
+Public surface mirrors packages/sdk-js/src/index.ts. WebRTC is provided by ``aiortc``.
+"""
+
+from __future__ import annotations
+
+from .client import ConvbasedClient
+from .endpoints import DEFAULT_GRAPHQL_URL, DEFAULT_SIGNALING_URL, DEFAULT_STUN_SERVERS
+from .rtc_servers import fetch_rtc_servers
+from .sdp import apply_opus_sdp_options
+from .types import ConnectionStats, RTCPreferences, RTCStatusCode
+
+__all__ = [
+    "ConvbasedClient",
+    "RTCPreferences",
+    "RTCStatusCode",
+    "ConnectionStats",
+    "fetch_rtc_servers",
+    "apply_opus_sdp_options",
+    "DEFAULT_SIGNALING_URL",
+    "DEFAULT_GRAPHQL_URL",
+    "DEFAULT_STUN_SERVERS",
+]
+
+__version__ = "0.1.0"
