@@ -70,15 +70,15 @@ try {
         throw 'The package README contains unresolved template fields.'
     }
     if (
-        $packageReadme -notmatch 'Windows DPAPI' -or
+        $packageReadme -notmatch 'current process session' -or
         $packageReadme -notmatch 'Converted output stays silent' -or
-        $packageReadme -notmatch 'encrypted local key automatically'
+        $packageReadme -notmatch 'never write it to disk'
     ) {
         throw 'The package README does not describe the current credential and audio behavior.'
     }
     if (
         $packageReadme -match 'falls back to dry audio' -or
-        $packageReadme -match 'held only in the current plug-in'
+        $packageReadme -match 'Windows DPAPI'
     ) {
         throw 'The package README still contains obsolete runtime behavior.'
     }

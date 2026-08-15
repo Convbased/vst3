@@ -5,6 +5,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$requiredSdkVersion = '0.2.0'
 $repoRoot = Split-Path -Parent $PSScriptRoot
 if (-not $SdkPath) {
     $SdkPath = Join-Path $repoRoot 'third_party\convbased-sdk-python'
@@ -37,6 +38,10 @@ if ($LASTEXITCODE -ne 0) {
 & $venvPython -m pip install -e $SdkPath -e (Join-Path $repoRoot 'bridge')
 if ($LASTEXITCODE -ne 0) {
     throw "Installing bridge-service dependencies failed with exit code $LASTEXITCODE"
+}
+& $venvPython -c "import importlib.metadata as m; assert m.version('convbased') == '$requiredSdkVersion'"
+if ($LASTEXITCODE -ne 0) {
+    throw "Installed Convbased Python SDK is not version $requiredSdkVersion"
 }
 
 Write-Host "Bridge-service environment ready: $venv"

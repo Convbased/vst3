@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "convbased-vst-bridge"
-version = "0.1.0"
+version = "0.2.0"
 description = "Loopback PCM bridge between Convbased Bridge VST3 and the Convbased Python SDK"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [{ name = "Convbased" }]
 dependencies = [
+    "convbased==0.2.0",
     "aiohttp>=3.9,<4",
     "aiortc>=1.6,<2",
     "av>=12,<17",

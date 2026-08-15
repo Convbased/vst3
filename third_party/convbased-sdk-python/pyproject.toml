@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "convbased"
-version = "0.1.0"
-description = "Convbased real-time voice conversion SDK (Python) — connect to the signaling service with an API key and stream audio through WebRTC (aiortc)."
+version = "0.2.0"
+description = "Convbased real-time voice conversion SDK with HTTPS credential exchange and WebRTC."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"

@@ -5,12 +5,12 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any, Awaitable, Callable, Optional
-from urllib.parse import urlencode
+from typing import Any, Callable, Optional
 
 import websockets
+from websockets.protocol import State
 
-from .endpoints import resolve_signaling_url
+from .signaling_ticket import signaling_websocket_url
 
 _log = logging.getLogger("convbased")
 
@@ -22,40 +22,42 @@ OnError = Callable[[Exception], Any]
 class SignalingChannel:
     """Thin wrapper over a JSON-over-WebSocket connection to the signaling server.
 
-    Auth uses a scoped ``api_key`` in the query string.
+    The URL carries only a short-lived, one-use ticket.
     """
 
     def __init__(
         self,
         signaling_url: str,
         *,
-        api_key: str,
+        ticket: str,
         connect_timeout: float = 20.0,
     ) -> None:
-        self._url = self._build_url(signaling_url, api_key)
+        self._url = signaling_websocket_url(signaling_url, ticket)
         self._connect_timeout = connect_timeout
-        self._ws: Optional[websockets.WebSocketClientProtocol] = None
+        self._ws: Any = None
         self._recv_task: Optional[asyncio.Task[None]] = None
-
-    @staticmethod
-    def _build_url(url: str, api_key: str) -> str:
-        base = resolve_signaling_url(url)
-        api_key = api_key.strip()
-        if not api_key:
-            raise ValueError("SignalingChannel requires api_key")
-        query = urlencode({"api_key": api_key})
-        sep = "&" if "?" in base else "?"
-        return f"{base}{sep}{query}"
 
     @property
     def is_open(self) -> bool:
-        return self._ws is not None and not self._ws.closed
+        if self._ws is None:
+            return False
+        state = getattr(self._ws, "state", None)
+        if state is not None:
+            return state is State.OPEN
+        return getattr(self._ws, "closed", True) is False
 
     async def connect(self, *, on_message: OnMessage, on_close: OnClose, on_error: OnError) -> None:
-        self._ws = await asyncio.wait_for(
-            websockets.connect(self._url, max_size=None),
-            timeout=self._connect_timeout,
-        )
+        try:
+            self._ws = await asyncio.wait_for(
+                websockets.connect(self._url, max_size=None),
+                timeout=self._connect_timeout,
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            raise RuntimeError(
+                f"signaling connection failed: {type(exc).__name__}"
+            ) from None
         self._recv_task = asyncio.ensure_future(self._receive_loop(on_message, on_close, on_error))
 
     async def _receive_loop(self, on_message: OnMessage, on_close: OnClose, on_error: OnError) -> None:
@@ -72,7 +74,7 @@ class SignalingChannel:
         except websockets.ConnectionClosed as exc:
             on_close(exc.code, exc.reason or "")
         except Exception as exc:  # noqa: BLE001 - surface to the client
-            on_error(exc)
+            on_error(RuntimeError(f"signaling receive failed: {type(exc).__name__}"))
 
     async def send(self, msg: dict[str, Any]) -> None:
         if not self.is_open:

@@ -22,6 +22,25 @@ using namespace std::chrono_literals;
 using protocol::FrameHeader;
 using protocol::MessageType;
 
+void secureClear(std::string& value) noexcept {
+    if (!value.empty()) {
+        ::SecureZeroMemory(value.data(), value.size());
+        value.clear();
+    }
+}
+
+class SecretWiper final {
+public:
+    explicit SecretWiper(std::string& value) noexcept : value_(value) {}
+    ~SecretWiper() { secureClear(value_); }
+
+    SecretWiper(const SecretWiper&) = delete;
+    SecretWiper& operator=(const SecretWiper&) = delete;
+
+private:
+    std::string& value_;
+};
+
 [[nodiscard]] SOCKET connectToBridgeService(std::uint16_t port) noexcept {
     const auto socketHandle = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (socketHandle == INVALID_SOCKET) {
@@ -158,8 +177,7 @@ void waitBeforeReconnect(const std::atomic<bool>& running) noexcept {
 LoopbackBridge::~LoopbackBridge() {
     stop();
     std::scoped_lock lock(credentialMutex_);
-    std::fill(apiKey_.begin(), apiKey_.end(), '\0');
-    apiKey_.clear();
+    secureClear(apiKey_);
 }
 
 bool LoopbackBridge::start(const BridgeConfig& config) {
@@ -199,6 +217,7 @@ void LoopbackBridge::stop() noexcept {
 }
 
 bool LoopbackBridge::setApiKey(std::string apiKey) {
+    const SecretWiper inputWiper(apiKey);
     if (apiKey.empty() || apiKey.size() > protocol::kMaxApiKeyBytes ||
         apiKey.find('\0') != std::string::npos) {
         return false;
@@ -206,8 +225,8 @@ bool LoopbackBridge::setApiKey(std::string apiKey) {
 
     {
         std::scoped_lock lock(credentialMutex_);
-        std::fill(apiKey_.begin(), apiKey_.end(), '\0');
-        apiKey_ = std::move(apiKey);
+        secureClear(apiKey_);
+        apiKey_.assign(apiKey);
         credentialGeneration_.fetch_add(1, std::memory_order_release);
     }
     resetAccountStatus();
@@ -218,8 +237,7 @@ bool LoopbackBridge::setApiKey(std::string apiKey) {
 void LoopbackBridge::clearApiKey() noexcept {
     {
         std::scoped_lock lock(credentialMutex_);
-        std::fill(apiKey_.begin(), apiKey_.end(), '\0');
-        apiKey_.clear();
+        secureClear(apiKey_);
         credentialGeneration_.fetch_add(1, std::memory_order_release);
     }
     input_.discardAvailable();
@@ -351,6 +369,7 @@ void LoopbackBridge::run() noexcept {
 
     while (running_.load(std::memory_order_acquire)) {
         std::string apiKey;
+        const SecretWiper apiKeyWiper(apiKey);
         std::uint64_t credentialGeneration = 0;
         {
             std::unique_lock lock(credentialMutex_);

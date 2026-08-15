@@ -205,11 +205,13 @@ class DeviceProfileMonitor:
 
     async def close(self) -> None:
         task, self._task = self._task, None
-        if task is None:
-            return
-        task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await task
+        try:
+            if task is not None:
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
+        finally:
+            self._api_key = ""
 
     async def refresh(self) -> ProfileSnapshot:
         profile = await self._fetcher(

@@ -26,5 +26,11 @@ if (Test-Path -LiteralPath $destination) {
     Remove-Item -LiteralPath $destination -Recurse -Force
 }
 Copy-Item -LiteralPath $source -Destination $destinationRoot -Recurse
+$legacyCredential = [System.IO.Path]::GetFullPath(
+    (Join-Path $env:LOCALAPPDATA 'Convbased\VST3\api-key.bin')
+)
+if (Test-Path -LiteralPath $legacyCredential) {
+    Remove-Item -LiteralPath $legacyCredential -Force
+}
 Write-Host "Installed Convbased Bridge to: $destination"
 Write-Host 'Rescan VST3 plug-ins in the DAW before testing.'

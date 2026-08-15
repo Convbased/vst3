@@ -103,7 +103,7 @@
                   kick-style="true" max-value="1" min-value="0" mouse-enabled="true"
                   opacity="1" origin="304, 40" round-radius="8" size="110, 36"
                   text-alignment="center" text-color="Text"
-                  text-color-highlighted="Text" title="保存并连接" transparent="false"
+                  text-color-highlighted="Text" title="连接" transparent="false"
                   wants-focus="true"/>
             <view class="CTextButton" control-tag="UI::ClearApiKey" default-value="0"
                   font="~ NormalFont" frame-color="Border"
@@ -121,13 +121,13 @@
                   max-value="1" min-value="0" mouse-enabled="false" opacity="1"
                   origin="16, 84" size="488, 18" style-no-frame="true"
                   text-alignment="left" text-inset="0, 0"
-                  title="尚未保存密钥，转换音频当前为静音。"
+                  title="尚未输入会话密钥，转换音频当前为静音。"
                   transparent="true"/>
             <view back-color="Panel" class="CTextLabel" font="~ NormalFontSmaller"
                   font-antialias="true" font-color="Quiet" frame-color="Panel"
                   frame-width="0" mouse-enabled="false" opacity="1" origin="16, 106"
                   size="488, 16" style-no-frame="true" text-alignment="left"
-                  text-inset="0, 0" title="密钥使用 Windows DPAPI 加密，仅保存在当前用户设备。"
+                  text-inset="0, 0" title="密钥仅用于本次插件会话，不写入磁盘或工程文件。"
                   transparent="true"/>
         </view>
 

@@ -9,37 +9,44 @@ from collections.abc import Sequence
 
 from .runtime import BridgeOptions, BridgeServer
 
-
 _SECRET_PATTERNS = (
-    re.compile(r"(?i)([?&]api_key=)[^&\s]+"),
-    re.compile(r"(?i)(\bx-api-key\s*:\s*)[^\s,;]+"),
-    re.compile(r'''(?i)(["']api_key["']\s*:\s*["'])[^"']+'''),
+    (re.compile(r"(?i)([?&](?:api_key|token|ticket)=)[^&\s]+"), r"\1<redacted>"),
+    (re.compile(r"(?i)(\bx-api-key\s*:\s*)[^\s,;]+"), r"\1<redacted>"),
+    (re.compile(r"(?i)(\bbearer\s+)[A-Za-z0-9._-]+"), r"\1<redacted>"),
+    (
+        re.compile(
+            r'''(?i)(["'](?:api_key|access_token|token|ticket)["']\s*:\s*["'])[^"']+'''
+        ),
+        r"\1<redacted>",
+    ),
+    (re.compile(r"\bst_[A-Za-z0-9_-]{43}\b"), "<redacted>"),
+    (re.compile(r"\bsk_[A-Za-z0-9._:-]{8,}\b"), "<redacted>"),
 )
+
+_LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
 
 
 def redact_secrets(message: str) -> str:
-    for pattern in _SECRET_PATTERNS:
-        message = pattern.sub(r"\1<redacted>", message)
+    for pattern, replacement in _SECRET_PATTERNS:
+        message = pattern.sub(replacement, message)
     return message
 
 
-class SecretRedactionFilter(logging.Filter):
-    def filter(self, record: logging.LogRecord) -> bool:
-        record.msg = redact_secrets(record.getMessage())
-        record.args = ()
-        return True
+class SecretRedactingFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        return redact_secrets(super().format(record))
 
 
 def configure_logging(verbose: bool) -> None:
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        format=_LOG_FORMAT,
     )
     detail_level = logging.DEBUG if verbose else logging.INFO
     logging.getLogger("convbased-vst-bridge").setLevel(detail_level)
     logging.getLogger("convbased").setLevel(detail_level)
     for handler in logging.getLogger().handlers:
-        handler.addFilter(SecretRedactionFilter())
+        handler.setFormatter(SecretRedactingFormatter(_LOG_FORMAT))
 
 
 def build_parser() -> argparse.ArgumentParser:

@@ -8,8 +8,8 @@ from convbased_vst_bridge.profile import (
     DeviceProfile,
     DeviceProfileError,
     DeviceProfileMonitor,
-    parse_device_profile_response,
     parse_account_balance_response,
+    parse_device_profile_response,
 )
 
 
@@ -108,6 +108,7 @@ class DeviceProfileMonitorTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(snapshot.profile.model_id, "model-1")
         finally:
             await monitor.close()
+        self.assertEqual(monitor._api_key, "")
 
 
 if __name__ == "__main__":

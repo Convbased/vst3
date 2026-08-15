@@ -17,8 +17,6 @@ convbased_fetch_vst3_sdk()
 smtg_enable_vst3_sdk()
 
 add_library(convbased_bridge_core STATIC
-    src/api_key_cache.cpp
-    src/api_key_cache.hpp
     src/audio_ring_buffer.hpp
     src/bridge_protocol.cpp
     src/bridge_protocol.hpp
@@ -29,7 +27,7 @@ add_library(convbased_bridge_core STATIC
 target_compile_features(convbased_bridge_core PUBLIC cxx_std_20)
 target_include_directories(convbased_bridge_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_compile_definitions(convbased_bridge_core PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
-target_link_libraries(convbased_bridge_core PUBLIC crypt32 ole32 shell32 ws2_32)
+target_link_libraries(convbased_bridge_core PUBLIC ws2_32)
 
 smtg_add_vst3plugin(ConvbasedVST3
     src/audio_routing.hpp

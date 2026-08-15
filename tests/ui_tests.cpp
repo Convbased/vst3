@@ -193,10 +193,10 @@ void testEditorDescription() {
     require(contents.find("title=\"Convbased\"") != std::string::npos &&
                 contents.find("title=\"实时变声\"") != std::string::npos,
             "editor title is not localized to Chinese");
-    require(contents.find("保存并连接") != std::string::npos,
+    require(contents.find("title=\"连接\"") != std::string::npos,
             "editor actions are not localized to Chinese");
-    require(contents.find("Windows DPAPI 加密") != std::string::npos,
-            "editor does not explain the encrypted local cache");
+    require(contents.find("不写入磁盘或工程文件") != std::string::npos,
+            "editor does not explain the session-only credential boundary");
     require(contents.find("#36c58d") == std::string::npos,
             "editor still contains the legacy non-brand green accent");
     require(contents.find("Audio remains dry") == std::string::npos,

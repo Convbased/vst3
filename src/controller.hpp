@@ -17,8 +17,6 @@ public:
     }
 
     Steinberg::tresult PLUGIN_API initialize(Steinberg::FUnknown* context) SMTG_OVERRIDE;
-    Steinberg::tresult PLUGIN_API connect(
-        Steinberg::Vst::IConnectionPoint* other) SMTG_OVERRIDE;
     Steinberg::IPlugView* PLUGIN_API createView(const char* name) SMTG_OVERRIDE;
     Steinberg::tresult PLUGIN_API setComponentState(Steinberg::IBStream* state) SMTG_OVERRIDE;
     Steinberg::tresult PLUGIN_API notify(
@@ -29,10 +27,8 @@ public:
         VSTGUI::VST3Editor* editor) SMTG_OVERRIDE;
 
     [[nodiscard]] bool submitApiKey(std::string_view apiKey);
-    [[nodiscard]] bool restoreCachedApiKey();
     [[nodiscard]] bool clearApiKey();
     [[nodiscard]] bool apiKeyApplied() const noexcept;
-    [[nodiscard]] bool apiKeyCached() const noexcept;
     [[nodiscard]] bool requestAccountStatus();
     [[nodiscard]] const bridge::protocol::AccountStatus& accountStatus() const noexcept;
 
@@ -40,7 +36,6 @@ private:
     [[nodiscard]] bool sendApiKey(std::string_view apiKey);
 
     bool apiKeyApplied_ {false};
-    bool apiKeyCached_ {false};
     bridge::protocol::AccountStatus accountStatus_ {};
     std::uint64_t accountStatusGeneration_ {0};
 };

@@ -23,6 +23,7 @@ class RTCStatusCode(IntEnum):
     RESPONSE_SENT = 3003
     LOADING_MODEL = 3004
     SERVICE_READY = 3009  # converted audio is flowing
+    REALTIME_PERFORMANCE = 3014
 
     SHUTDOWN = 4000
     SERVER_CLOSED = 5000
@@ -92,3 +93,89 @@ class ConnectionStats:
     rtt_ms: float = 0.0
     jitter: float = 0.0
     packets_lost: int = 0
+
+
+def _wire_number(data: dict[str, Any], key: str) -> float:
+    value = data.get(key)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{key} must be a number")
+    return float(value)
+
+
+def _wire_optional_number(data: dict[str, Any], key: str) -> Optional[float]:
+    value = data.get(key)
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{key} must be a number or null")
+    return float(value)
+
+
+def _wire_int(data: dict[str, Any], key: str) -> int:
+    value = data.get(key)
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"{key} must be an integer")
+    return value
+
+
+@dataclass(frozen=True, slots=True)
+class ProcessingLatencyStats:
+    sample_count: int
+    sample_limit: int
+    sample_truncated: bool
+    mean_ms: Optional[float]
+    p50_ms: Optional[float]
+    p95_ms: Optional[float]
+    p99_ms: Optional[float]
+    max_ms: Optional[float]
+
+    @classmethod
+    def from_wire(cls, data: dict[str, Any]) -> "ProcessingLatencyStats":
+        sample_truncated = data.get("sample_truncated")
+        if not isinstance(sample_truncated, bool):
+            raise ValueError("sample_truncated must be a boolean")
+        return cls(
+            sample_count=_wire_int(data, "sample_count"),
+            sample_limit=_wire_int(data, "sample_limit"),
+            sample_truncated=sample_truncated,
+            mean_ms=_wire_optional_number(data, "mean"),
+            p50_ms=_wire_optional_number(data, "p50"),
+            p95_ms=_wire_optional_number(data, "p95"),
+            p99_ms=_wire_optional_number(data, "p99"),
+            max_ms=_wire_optional_number(data, "max"),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class RealtimePerformanceStats:
+    instance_id: str
+    interval_ms: float
+    block_ms: float
+    processed_blocks: int
+    processing_failures: int
+    slow_processing_blocks: int
+    dropped_input_samples: int
+    input_buffered_samples: int
+    output_buffered_samples: int
+    processing: ProcessingLatencyStats
+
+    @classmethod
+    def from_wire(cls, data: dict[str, Any]) -> "RealtimePerformanceStats":
+        instance_id = data.get("instance_id")
+        processing = data.get("processing_ms")
+        if not isinstance(instance_id, str) or not instance_id:
+            raise ValueError("instance_id must be a non-empty string")
+        if not isinstance(processing, dict):
+            raise ValueError("processing_ms must be an object")
+        return cls(
+            instance_id=instance_id,
+            interval_ms=_wire_number(data, "interval_ms"),
+            block_ms=_wire_number(data, "block_ms"),
+            processed_blocks=_wire_int(data, "processed_blocks"),
+            processing_failures=_wire_int(data, "processing_failures"),
+            slow_processing_blocks=_wire_int(data, "slow_processing_blocks"),
+            dropped_input_samples=_wire_int(data, "dropped_input_samples"),
+            input_buffered_samples=_wire_int(data, "input_buffered_samples"),
+            output_buffered_samples=_wire_int(data, "output_buffered_samples"),
+            processing=ProcessingLatencyStats.from_wire(processing),
+        )

@@ -20,17 +20,15 @@ This is an unsigned pre-release test build. Windows may display a SmartScreen wa
 5. Keep the bridge-service window open, rescan VST3 plug-ins in the DAW, and insert
    **Convbased Bridge** on the source track.
 6. Open the plug-in editor, paste the key into the masked **API Key** field, and select
-   **保存并连接**. Later sessions restore the encrypted local key automatically. Select
-   **清除** to remove the local cache and disconnect.
+   **连接**. Select **清除** to erase the session copy and disconnect.
 
 For live monitoring, start with a 48 kHz DAW session, 100% wet mix, and an ASIO buffer
 of 128 or 256 samples. Converted output stays silent until fresh converted audio arrives;
 the plug-in never passes original audio through as a fallback.
 
-The plug-in encrypts the API key for the current Windows user with Windows DPAPI and
-stores the encrypted blob under the user's local application-data directory. It never
-writes the key into plug-in state, presets, or the DAW project. The bridge service receives the
-key over the loopback-only session handshake and retains its copy only in process memory.
+The plug-in and bridge service retain the API key only for the current process session. They
+never write it to disk, plug-in state, presets, or the DAW project. The bridge service receives
+the key over the loopback-only session handshake.
 
 Model selection, conversion preferences, and the real-time switch come from the backend
 profile bound to the key. The editor reports API Key validation, device-profile readiness,

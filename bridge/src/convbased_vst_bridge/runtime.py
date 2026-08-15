@@ -30,8 +30,8 @@ from .protocol import (
     ProtocolError,
     decode_auth,
     decode_hello,
-    read_message,
     encode_account_status,
+    read_message,
     write_message,
 )
 
@@ -59,6 +59,7 @@ class BridgeSession:
         self.options = options
         self.write_lock = asyncio.Lock()
         self.sequence = 0
+        self.api_key = ""
         self.client: Any = None
         self.output_samples = 0
         self.output_max_gap_ms = 0.0
@@ -268,6 +269,7 @@ class BridgeSession:
             self.client = None
             await self.profile_monitor.close()
             self.api_key = ""
+            api_key = ""
 
     async def _report_account_status(
         self, profile: DeviceProfile | None, graphql_url: str, api_key: str

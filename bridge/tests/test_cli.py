@@ -1,8 +1,15 @@
 from __future__ import annotations
 
+import logging
+import sys
 import unittest
 
-from convbased_vst_bridge.cli import build_parser, options_from_args, redact_secrets
+from convbased_vst_bridge.cli import (
+    SecretRedactingFormatter,
+    build_parser,
+    options_from_args,
+    redact_secrets,
+)
 
 
 class CliTests(unittest.TestCase):
@@ -38,6 +45,28 @@ class CliTests(unittest.TestCase):
 
         self.assertNotIn(secret, redacted)
         self.assertEqual(redacted.count("<redacted>"), 3)
+
+    def test_crash_tracebacks_redact_tickets_and_upstream_credentials(self) -> None:
+        ticket = "st_" + "a" * 43
+        api_key = "sk_sensitive-value"
+        try:
+            raise RuntimeError(
+                f"wss://example.invalid/ws?ticket={ticket} x-api-key: {api_key}"
+            )
+        except RuntimeError:
+            record = logging.LogRecord(
+                "convbased-vst-bridge",
+                logging.ERROR,
+                __file__,
+                1,
+                "bridge session failed",
+                (),
+                sys.exc_info(),
+            )
+        output = SecretRedactingFormatter("%(message)s").format(record)
+        self.assertNotIn(ticket, output)
+        self.assertNotIn(api_key, output)
+        self.assertIn("<redacted>", output)
 
 
 if __name__ == "__main__":

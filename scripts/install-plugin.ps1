@@ -47,4 +47,10 @@ $destinationRoot = if ($Scope -eq 'AllUsers') {
 }
 New-Item -ItemType Directory -Path $destinationRoot -Force | Out-Null
 Copy-Item -LiteralPath $source.FullName -Destination $destinationRoot -Recurse -Force
+$legacyCredential = [System.IO.Path]::GetFullPath(
+    (Join-Path $env:LOCALAPPDATA 'Convbased\VST3\api-key.bin')
+)
+if (Test-Path -LiteralPath $legacyCredential) {
+    Remove-Item -LiteralPath $legacyCredential -Force
+}
 Write-Host "Installed plug-in to: $(Join-Path $destinationRoot $source.Name)"
