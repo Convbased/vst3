@@ -65,7 +65,7 @@ class BridgeSession:
             from convbased import DEFAULT_GRAPHQL_URL
         except ModuleNotFoundError as exc:
             raise RuntimeError(
-                "Convbased Python SDK is not installed; run scripts/setup-sidecar.ps1"
+                "Convbased Python SDK is not installed; run scripts/setup-bridge.ps1"
             ) from exc
 
         self.api_key = api_key
@@ -206,7 +206,7 @@ class BridgeSession:
             from convbased import ConvbasedClient
         except ModuleNotFoundError as exc:
             raise RuntimeError(
-                "Convbased Python SDK is not installed; run scripts/setup-sidecar.ps1"
+                "Convbased Python SDK is not installed; run scripts/setup-bridge.ps1"
             ) from exc
 
         kwargs: dict[str, Any] = {

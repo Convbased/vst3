@@ -64,13 +64,13 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: sidecar/pyproject.toml
+          cache-dependency-path: bridge/pyproject.toml
 
-      - name: 安装 SDK 与 Sidecar
+      - name: 安装 SDK 与桥接服务
         shell: pwsh
         run: |
           $python = (Get-Command python -ErrorAction Stop).Source
-          .\scripts\setup-sidecar.ps1 -Python $python
+          .\scripts\setup-bridge.ps1 -Python $python
 
       - name: 构建、测试并打包
         shell: pwsh

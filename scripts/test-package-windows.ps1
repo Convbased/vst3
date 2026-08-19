@@ -16,7 +16,7 @@ if (Test-Path -LiteralPath $outerChecksumPath) {
     $expected = ((Get-Content -LiteralPath $outerChecksumPath -Raw) -split '\s+')[0]
     $actual = (Get-FileHash -LiteralPath $zip.FullName -Algorithm SHA256).Hash
     if ($actual -ne $expected) {
-        throw 'ZIP SHA256 does not match its sidecar checksum file.'
+        throw 'ZIP SHA256 does not match its checksum file.'
     }
 }
 
@@ -79,7 +79,7 @@ try {
         }
     }
 
-    $sidecar = Join-Path $packageRoot 'Sidecar\ConvbasedVSTBridge\ConvbasedVSTBridge.exe'
+    $bridgeService = Join-Path $packageRoot 'BridgeService\ConvbasedVSTBridge\ConvbasedVSTBridge.exe'
     $pluginBundle = Join-Path $packageRoot 'Plugin\ConvbasedVST3.vst3'
     $pluginBinary = Get-ChildItem -LiteralPath $pluginBundle -File -Filter 'ConvbasedVST3.vst3' -Recurse |
         Select-Object -First 1
@@ -88,17 +88,17 @@ try {
     }
 
     $amd64Machine = 0x8664
-    foreach ($binary in @($sidecar, $pluginBinary.FullName)) {
+    foreach ($binary in @($bridgeService, $pluginBinary.FullName)) {
         $machine = Get-PeMachine $binary
         if ($machine -ne $amd64Machine) {
             throw ('Expected AMD64 PE machine 0x8664, got 0x{0:x4}: {1}' -f $machine, $binary)
         }
     }
 
-    $helpOutput = & $sidecar --help 2>&1
+    $helpOutput = & $bridgeService --help 2>&1
     $helpText = $helpOutput -join "`n"
     if ($LASTEXITCODE -ne 0 -or $helpText -notmatch 'Convbased VST3 SDK bridge') {
-        throw "The packaged sidecar failed its startup check: $helpText"
+        throw "The packaged bridge service failed its startup check: $helpText"
     }
 
     $validator = Join-Path $repoRoot 'build\bin\Release\validator.exe'

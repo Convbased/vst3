@@ -8,21 +8,21 @@ DAW audio block
     -> preallocated SPSC input ring
     -> loopback bridge worker                 (background thread)
     -> 127.0.0.1 framed float32 PCM
-    -> Python sidecar + Convbased SDK
+    -> Python bridge service + Convbased SDK
     -> WebRTC / Opus / Convbased model
-    -> Python sidecar
+    -> Python bridge service
     -> 127.0.0.1 framed float32 PCM
     -> preallocated SPSC output ring
     -> VST3 process()
     -> DAW track
 ```
 
-The DAW supplies and consumes every audio block. The sidecar never opens a Windows
+The DAW supplies and consumes every audio block. The bridge service never opens a Windows
 capture or playback device, so this path does not add a WASAPI/MME/DirectSound device
 loop. The DAW still reaches the physical interface through its configured driver,
 preferably ASIO with a small stable buffer.
 
-The sidecar lets aiortc resample the host-rate source to the 48 kHz Opus RTP clock and
+The bridge service lets aiortc resample the host-rate source to the 48 kHz Opus RTP clock and
 configures the Convbased model at 48 kHz. Converted 48 kHz audio is resampled back to the
 DAW session rate before it is returned to the plug-in.
 
@@ -33,7 +33,7 @@ to the processor as a non-parameter VST message, and the background bridge inclu
 the loopback session handshake. It is deliberately excluded from processor/controller
 state, parameter automation, presets, and DAW project serialization.
 
-Each sidecar session uses that key to read `myDeviceProfile` from the SDK's default
+Each bridge-service session uses that key to read `myDeviceProfile` from the SDK's default
 GraphQL endpoint. The profile supplies the model, conversion preferences, and real-time
 enable switch. It is polled while the bridge runs; a changed profile closes the current
 WebRTC session so the plug-in's loopback worker reconnects with the new configuration. A

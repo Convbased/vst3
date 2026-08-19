@@ -38,8 +38,8 @@ if (-not $Python) {
 
 $oldPythonPath = $env:PYTHONPATH
 try {
-    $env:PYTHONPATH = Join-Path $repoRoot 'sidecar\src'
-    & $Python -m unittest discover -s (Join-Path $repoRoot 'sidecar\tests') -v
+    $env:PYTHONPATH = Join-Path $repoRoot 'bridge\src'
+    & $Python -m unittest discover -s (Join-Path $repoRoot 'bridge\tests') -v
     if ($LASTEXITCODE -ne 0) {
         throw "Python tests failed with exit code $LASTEXITCODE"
     }

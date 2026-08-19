@@ -29,7 +29,7 @@ if (-not $SkipBuild) {
 
 $python = Join-Path $repoRoot '.venv\Scripts\python.exe'
 if (-not (Test-Path -LiteralPath $python)) {
-    throw 'The sidecar environment is missing. Run scripts/setup-sidecar.ps1 first.'
+    throw 'The bridge-service environment is missing. Run scripts/setup-bridge.ps1 first.'
 }
 if (-not $SkipDependencyInstall) {
     & $python -m pip install 'pyinstaller>=6.11,<7'
@@ -39,7 +39,7 @@ if (-not $SkipDependencyInstall) {
 }
 & $python -c 'import PyInstaller'
 if ($LASTEXITCODE -ne 0) {
-    throw 'PyInstaller is unavailable. Install sidecar release dependencies first.'
+    throw 'PyInstaller is unavailable. Install bridge-service release dependencies first.'
 }
 
 $buildDir = Join-Path $repoRoot 'build'
@@ -88,7 +88,7 @@ $pyInstallerSpec = Join-Path $pyInstallerRoot 'spec'
 New-Item -ItemType Directory -Path $pyInstallerDist, $pyInstallerWork, $pyInstallerSpec -Force |
     Out-Null
 
-$entryPoint = Join-Path $repoRoot 'packaging\windows\sidecar_entry.py'
+$entryPoint = Join-Path $repoRoot 'packaging\windows\bridge_entry.py'
 $pyInstallerArgs = @(
     '--noconfirm',
     '--clean',
@@ -98,7 +98,7 @@ $pyInstallerArgs = @(
     '--distpath', $pyInstallerDist,
     '--workpath', $pyInstallerWork,
     '--specpath', $pyInstallerSpec,
-    '--paths', (Join-Path $repoRoot 'sidecar\src'),
+    '--paths', (Join-Path $repoRoot 'bridge\src'),
     '--collect-all', 'convbased',
     '--collect-all', 'convbased_vst_bridge',
     '--collect-all', 'aiortc',
@@ -107,22 +107,22 @@ $pyInstallerArgs = @(
 )
 & $python -m PyInstaller @pyInstallerArgs
 if ($LASTEXITCODE -ne 0) {
-    throw "Building the standalone sidecar failed with exit code $LASTEXITCODE"
+    throw "Building the standalone bridge service failed with exit code $LASTEXITCODE"
 }
 
-$frozenSidecar = Join-Path $pyInstallerDist 'ConvbasedVSTBridge'
-$frozenExe = Join-Path $frozenSidecar 'ConvbasedVSTBridge.exe'
+$frozenBridge = Join-Path $pyInstallerDist 'ConvbasedVSTBridge'
+$frozenExe = Join-Path $frozenBridge 'ConvbasedVSTBridge.exe'
 if (-not (Test-Path -LiteralPath $frozenExe)) {
-    throw "The standalone sidecar executable was not produced: $frozenExe"
+    throw "The standalone bridge-service executable was not produced: $frozenExe"
 }
 
 $pluginDir = Join-Path $stage 'Plugin'
-$sidecarDir = Join-Path $stage 'Sidecar'
-New-Item -ItemType Directory -Path $pluginDir, $sidecarDir -Force | Out-Null
+$bridgeServiceDir = Join-Path $stage 'BridgeService'
+New-Item -ItemType Directory -Path $pluginDir, $bridgeServiceDir -Force | Out-Null
 Copy-Item -LiteralPath $plugin.FullName -Destination $pluginDir -Recurse
-Copy-Item -LiteralPath $frozenSidecar -Destination $sidecarDir -Recurse
+Copy-Item -LiteralPath $frozenBridge -Destination $bridgeServiceDir -Recurse
 Copy-Item -LiteralPath (Join-Path $repoRoot 'packaging\windows\Install.ps1') -Destination $stage
-Copy-Item -LiteralPath (Join-Path $repoRoot 'packaging\windows\Start-Sidecar.ps1') -Destination $stage
+Copy-Item -LiteralPath (Join-Path $repoRoot 'packaging\windows\Start-Bridge.ps1') -Destination $stage
 
 $commit = (& git -C $repoRoot rev-parse HEAD).Trim()
 $readmeTemplate = Get-Content -LiteralPath (
@@ -137,7 +137,7 @@ $readme = $readmeTemplate.Replace('{{VERSION}}', $Version).Replace('{{COMMIT}}',
 
 $pluginBinary = Get-ChildItem -LiteralPath $pluginDir -File -Filter 'ConvbasedVST3.vst3' -Recurse |
     Select-Object -First 1
-$checksumTargets = @($pluginBinary, (Get-Item -LiteralPath (Join-Path $sidecarDir 'ConvbasedVSTBridge\ConvbasedVSTBridge.exe')))
+$checksumTargets = @($pluginBinary, (Get-Item -LiteralPath (Join-Path $bridgeServiceDir 'ConvbasedVSTBridge\ConvbasedVSTBridge.exe')))
 $checksumLines = foreach ($target in $checksumTargets) {
     $hash = Get-FileHash -LiteralPath $target.FullName -Algorithm SHA256
     $relative = $target.FullName.Substring($stage.Length).TrimStart('\', '/').Replace('\', '/')

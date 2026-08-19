@@ -56,7 +56,7 @@ public:
         const auto applied = owner_.submitApiKey(apiKeyInput_->getText().data());
         if (applied) {
             apiKeyInput_->setText("");
-            setStatus("Applied for this plug-in session. Sidecar will connect.");
+            setStatus("Applied for this plug-in session. Bridge service will connect.");
         } else {
             setStatus("Enter 1-512 printable characters, without spaces.");
         }

@@ -40,7 +40,7 @@
               font-antialias="true" font-color="Muted" frame-color="Canvas"
               frame-width="0" mouse-enabled="false" opacity="1" origin="24, 47"
               size="512, 18" style-no-frame="true" text-alignment="left"
-              text-inset="0, 0" title="DAW audio to Convbased through a local sidecar"
+              text-inset="0, 0" title="DAW audio to Convbased through the local bridge service"
               transparent="true"/>
 
         <view background-color="Panel" background-color-draw-style="filled"
@@ -116,7 +116,7 @@
               font-antialias="true" font-color="Muted" frame-color="Canvas"
               frame-width="0" mouse-enabled="false" opacity="1" origin="24, 266"
               size="512, 16" style-no-frame="true" text-alignment="left"
-              text-inset="0, 0" title="Start the packaged sidecar first. Converted audio returns automatically."
+              text-inset="0, 0" title="Start the bridge service first. Converted audio returns automatically."
               transparent="true"/>
     </template>
 </vstgui-ui-description>

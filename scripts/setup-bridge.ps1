@@ -34,9 +34,9 @@ $venvPython = Join-Path $venv 'Scripts\python.exe'
 if ($LASTEXITCODE -ne 0) {
     throw "Updating pip failed with exit code $LASTEXITCODE"
 }
-& $venvPython -m pip install -e $SdkPath -e (Join-Path $repoRoot 'sidecar')
+& $venvPython -m pip install -e $SdkPath -e (Join-Path $repoRoot 'bridge')
 if ($LASTEXITCODE -ne 0) {
-    throw "Installing sidecar dependencies failed with exit code $LASTEXITCODE"
+    throw "Installing bridge-service dependencies failed with exit code $LASTEXITCODE"
 }
 
-Write-Host "Sidecar environment ready: $venv"
+Write-Host "Bridge-service environment ready: $venv"

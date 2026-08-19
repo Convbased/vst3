@@ -5,9 +5,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$executable = Join-Path $PSScriptRoot 'Sidecar\ConvbasedVSTBridge\ConvbasedVSTBridge.exe'
+$executable = Join-Path $PSScriptRoot 'BridgeService\ConvbasedVSTBridge\ConvbasedVSTBridge.exe'
 if (-not (Test-Path -LiteralPath $executable)) {
-    throw "Packaged sidecar was not found: $executable"
+    throw "Packaged bridge service was not found: $executable"
 }
 
 $arguments = @()
@@ -16,5 +16,5 @@ if ($VerboseLogs) {
 }
 & $executable @arguments
 if ($LASTEXITCODE -ne 0) {
-    throw "Convbased sidecar exited with code $LASTEXITCODE"
+    throw "Convbased bridge service exited with code $LASTEXITCODE"
 }

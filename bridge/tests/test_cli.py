@@ -6,7 +6,7 @@ from convbased_vst_bridge.cli import build_parser, options_from_args
 
 
 class CliTests(unittest.TestCase):
-    def test_sidecar_starts_without_environment_credentials(self) -> None:
+    def test_bridge_service_starts_without_environment_credentials(self) -> None:
         parser = build_parser()
         options = options_from_args(parser.parse_args([]), parser)
 

@@ -22,7 +22,7 @@ using namespace std::chrono_literals;
 using protocol::FrameHeader;
 using protocol::MessageType;
 
-[[nodiscard]] SOCKET connectToSidecar(std::uint16_t port) noexcept {
+[[nodiscard]] SOCKET connectToBridgeService(std::uint16_t port) noexcept {
     const auto socketHandle = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (socketHandle == INVALID_SOCKET) {
         return INVALID_SOCKET;
@@ -283,7 +283,7 @@ void LoopbackBridge::run() noexcept {
             continue;
         }
         state_.store(BridgeState::connecting, std::memory_order_release);
-        const auto socketHandle = connectToSidecar(config_.port);
+        const auto socketHandle = connectToBridgeService(config_.port);
         if (socketHandle == INVALID_SOCKET) {
             state_.store(BridgeState::disconnected, std::memory_order_release);
             input_.discardAvailable();

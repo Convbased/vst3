@@ -100,7 +100,7 @@ class PluginAudioTrack(AudioStreamTrack):  # type: ignore[misc,valid-type]
 
     def __init__(self, reservoir: PcmReservoir, sample_rate: int) -> None:
         if AudioFrame is None:
-            raise RuntimeError("aiortc and av must be installed to run the sidecar")
+            raise RuntimeError("aiortc and av must be installed to run the bridge service")
         super().__init__()
         self._reservoir = reservoir
         self._sample_rate = sample_rate
