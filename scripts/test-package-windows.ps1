@@ -70,9 +70,9 @@ try {
         throw 'The package README contains unresolved template fields.'
     }
     if (
-        $packageReadme -notmatch 'current process session' -or
+        $packageReadme -notmatch 'Re-enter the API key' -or
         $packageReadme -notmatch 'Converted output stays silent' -or
-        $packageReadme -notmatch 'never write it to disk'
+        $packageReadme -notmatch 'local bridge service'
     ) {
         throw 'The package README does not describe the current credential and audio behavior.'
     }

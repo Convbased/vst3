@@ -26,9 +26,7 @@ For live monitoring, start with a 48 kHz DAW session, 100% wet mix, and an ASIO 
 of 128 or 256 samples. Converted output stays silent until fresh converted audio arrives;
 the plug-in never passes original audio through as a fallback.
 
-The plug-in and bridge service retain the API key only for the current process session. They
-never write it to disk, plug-in state, presets, or the DAW project. The bridge service receives
-the key over the loopback-only session handshake.
+Re-enter the API key after reopening a DAW project.
 
 Model selection, conversion preferences, and the real-time switch come from the backend
 profile bound to the key. The editor reports API Key validation, device-profile readiness,
@@ -39,7 +37,7 @@ and the current balance when the service permits API-key balance queries.
 - `Plugin/ConvbasedVST3.vst3`: native Windows x64 VST3 bundle.
 - `BridgeService/ConvbasedVSTBridge`: standalone Windows x64 bridge service and runtime libraries.
 - `Install.ps1`: per-user VST3 installer.
-- `Start-Bridge.ps1`: bridge-service launcher; no credential environment variable required.
+- `Start-Bridge.ps1`: bridge-service launcher.
 - `SHA256SUMS.txt`: checksums for the plug-in module and bridge-service executable.
 
 This package does not support Windows ARM64 or macOS. See the repository's
