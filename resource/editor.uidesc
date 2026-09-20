@@ -86,7 +86,7 @@
                   font-antialias="true" font-color="Quiet" frame-color="Panel"
                   frame-width="0" mouse-enabled="false" opacity="1" origin="360, 14"
                   size="144, 16" style-no-frame="true" text-alignment="right"
-                  text-inset="0, 0" title="Windows 本机加密" transparent="true"/>
+                  text-inset="0, 0" title="仅本次会话" transparent="true"/>
             <view back-color="Field" class="CTextEdit" control-tag="UI::ApiKeyInput"
                   default-value="0" font="~ NormalFont" font-antialias="true"
                   font-color="Text" frame-color="Border" frame-width="1"
